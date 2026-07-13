@@ -631,6 +631,18 @@ def admin_delete_user(user_id):
     return jsonify({'message': f'User {user.username} deleted'})
 
 
+@app.route('/api/admin/users/<int:user_id>/reset-password', methods=['POST'])
+@admin_required
+def admin_reset_password(user_id):
+    user = User.query.get_or_404(user_id)
+    data = request.get_json()
+    if not data or not data.get('new_password'):
+        return jsonify({'error': 'new_password is required'}), 400
+    user.set_password(data['new_password'])
+    db.session.commit()
+    return jsonify({'message': f'Password reset for {user.username}'})
+
+
 @app.route('/api/admin/posts', methods=['GET'])
 @admin_required
 def admin_get_posts():

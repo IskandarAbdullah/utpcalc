@@ -114,7 +114,12 @@
                             <div style="font-size:0.75rem; color:#9ca3af;">@${u.username} · ${u.program_id.toUpperCase()} · Sem ${u.current_semester}</div>
                         </div>
                     </div>
-                    ${!u.is_admin ? `<button class="btn btn-sm btn-danger-soft" onclick="deleteUser(${u.id}, '${u.username}')"><i class="fas fa-trash me-1"></i>Delete</button>` : '<span class="badge bg-success">Protected</span>'}
+                    ${!u.is_admin ? `
+                        <div class="d-flex gap-1">
+                            <button class="btn btn-sm btn-warning" style="font-size:0.7rem;" onclick="resetPassword(${u.id}, '${u.username}')"><i class="fas fa-key me-1"></i>Reset PW</button>
+                            <button class="btn btn-sm btn-danger-soft" onclick="deleteUser(${u.id}, '${u.username}')"><i class="fas fa-trash me-1"></i>Delete</button>
+                        </div>
+                    ` : '<span class="badge bg-success">Protected</span>'}
                 </div>
             `).join('');
         }
@@ -142,6 +147,18 @@
             if (!confirm(`Delete user @${name}? This removes all their data.`)) return;
             await fetch(`/api/admin/users/${id}`, {method:'DELETE'});
             loadUsers(); loadStats();
+        }
+
+        async function resetPassword(id, name) {
+            const newPw = prompt(`Set new password for @${name}:`);
+            if (!newPw) return;
+            const res = await fetch(`/api/admin/users/${id}/reset-password`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({new_password: newPw})
+            });
+            const data = await res.json();
+            alert(data.message || data.error);
         }
 
         async function deletePost(id) {
