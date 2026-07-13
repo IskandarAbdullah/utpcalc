@@ -119,7 +119,12 @@
                             <button class="btn btn-sm btn-warning" style="font-size:0.7rem;" onclick="resetPassword(${u.id}, '${u.username}')"><i class="fas fa-key me-1"></i>Reset PW</button>
                             <button class="btn btn-sm btn-danger-soft" onclick="deleteUser(${u.id}, '${u.username}')"><i class="fas fa-trash me-1"></i>Delete</button>
                         </div>
-                    ` : '<span class="badge bg-success">Protected</span>'}
+                    ` : `
+                        <div class="d-flex gap-1">
+                            <span class="badge bg-success me-1">Admin</span>
+                            <button class="btn btn-sm btn-warning" style="font-size:0.7rem;" onclick="resetPassword(${u.id}, '${u.username}')"><i class="fas fa-key me-1"></i>Reset PW</button>
+                        </div>
+                    `}
                 </div>
             `).join('');
         }
