@@ -40,8 +40,20 @@
         </div>
     </nav>
     <div class="container">
+        <!-- ICS Import -->
         <div class="card p-3 mb-3">
-            <h6 class="mb-2"><i class="fas fa-plus me-1"></i>Add Class</h6>
+            <h6 class="mb-2"><i class="fas fa-file-import me-1"></i>Import from .ics File</h6>
+            <small class="text-muted d-block mb-2">Upload your timetable .ics file (from UTP portal / Moodle) to auto-populate your schedule.</small>
+            <div class="row g-2">
+                <div class="col"><input type="file" id="tt-ics" class="form-control form-control-sm" accept=".ics"></div>
+                <div class="col-auto"><button class="btn btn-utp btn-sm" onclick="importICS()"><i class="fas fa-upload me-1"></i>Import</button></div>
+            </div>
+            <div id="ics-result" class="mt-2" style="display:none;"></div>
+        </div>
+
+        <!-- Add Class Manually -->
+        <div class="card p-3 mb-3">
+            <h6 class="mb-2"><i class="fas fa-plus me-1"></i>Add Class Manually</h6>
             <div class="row g-2">
                 <div class="col-md-2"><select id="tt-course" class="form-select form-select-sm"><option value="">Course</option></select></div>
                 <div class="col-md-2"><select id="tt-day" class="form-select form-select-sm"><option value="monday">Monday</option><option value="tuesday">Tuesday</option><option value="wednesday">Wednesday</option><option value="thursday">Thursday</option><option value="friday">Friday</option></select></div>
@@ -82,6 +94,33 @@
             loadTimetable();
         }
         async function deleteEntry(id){await fetch(`/api/timetable/${id}`,{method:'DELETE'});loadTimetable();}
+
+        async function importICS() {
+            const fileInput = document.getElementById('tt-ics');
+            const resultDiv = document.getElementById('ics-result');
+            if (!fileInput.files[0]) return alert('Select an .ics file');
+
+            const formData = new FormData();
+            formData.append('ics', fileInput.files[0]);
+
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<small class="text-info"><i class="fas fa-spinner fa-spin"></i> Importing...</small>';
+
+            try {
+                const res = await fetch('/api/timetable/import-ics', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (res.ok) {
+                    resultDiv.innerHTML = `<small class="text-success"><i class="fas fa-check me-1"></i>${data.message}</small>`;
+                    fileInput.value = '';
+                    loadTimetable();
+                } else {
+                    resultDiv.innerHTML = `<small class="text-danger"><i class="fas fa-times me-1"></i>${data.error}</small>`;
+                }
+            } catch (e) {
+                resultDiv.innerHTML = '<small class="text-danger">Error importing file.</small>';
+            }
+        }
+
         loadCourses();loadTimetable();
     </script>
 </body>

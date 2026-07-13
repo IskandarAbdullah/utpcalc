@@ -926,6 +926,109 @@ def delete_timetable(entry_id):
     return jsonify({'message': 'Deleted'})
 
 
+@app.route('/api/timetable/import-ics', methods=['POST'])
+@login_required
+def import_timetable_ics():
+    """Import timetable from .ics file (recurring weekly classes)."""
+    user = get_current_user()
+
+    if 'ics' not in request.files:
+        return jsonify({'error': 'No .ics file uploaded'}), 400
+
+    ics_file = request.files['ics']
+    if not ics_file.filename.lower().endswith('.ics'):
+        return jsonify({'error': 'File must be .ics'}), 400
+
+    try:
+        content = ics_file.read().decode('utf-8')
+        from datetime import datetime as dt_type
+        import re as re_mod
+
+        entries_added = 0
+        day_names = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+
+        vevent_pattern = r'BEGIN:VEVENT(.*?)END:VEVENT'
+        vevents = re_mod.findall(vevent_pattern, content, re_mod.DOTALL)
+
+        for vevent in vevents:
+            summary_match = re_mod.search(r'SUMMARY:(.*?)(?:\r?\n)', vevent)
+            dtstart_match = re_mod.search(r'DTSTART[^:]*:(.*?)(?:\r?\n)', vevent)
+            dtend_match = re_mod.search(r'DTEND[^:]*:(.*?)(?:\r?\n)', vevent)
+            location_match = re_mod.search(r'LOCATION:(.*?)(?:\r?\n)', vevent)
+
+            if not summary_match or not dtstart_match:
+                continue
+
+            title = summary_match.group(1).strip()
+            dtstart_raw = dtstart_match.group(1).strip()
+            location = location_match.group(1).strip() if location_match else ''
+
+            # Parse datetime
+            start_time = ''
+            end_time = ''
+            day = ''
+            try:
+                if 'T' in dtstart_raw:
+                    dt = dt_type.strptime(dtstart_raw[:15], '%Y%m%dT%H%M%S')
+                    day = day_names[dt.weekday()]
+                    start_time = dt.strftime('%H:%M')
+                else:
+                    dt = dt_type.strptime(dtstart_raw[:8], '%Y%m%d')
+                    day = day_names[dt.weekday()]
+            except (ValueError, IndexError):
+                continue
+
+            if dtend_match:
+                try:
+                    dtend_raw = dtend_match.group(1).strip()
+                    if 'T' in dtend_raw:
+                        dt_end = dt_type.strptime(dtend_raw[:15], '%Y%m%dT%H%M%S')
+                        end_time = dt_end.strftime('%H:%M')
+                except (ValueError, IndexError):
+                    pass
+
+            # Extract course code from title
+            course_code = ''
+            code_match = re_mod.search(r'[A-Z]{2,3}\d{4}', title)
+            if code_match:
+                course_code = code_match.group(0)
+
+            # Determine class type
+            title_lower = title.lower()
+            class_type = 'lecture'
+            if 'tutorial' in title_lower or 'tut' in title_lower:
+                class_type = 'tutorial'
+            elif 'lab' in title_lower or 'practical' in title_lower:
+                class_type = 'lab'
+
+            # Check if already exists (avoid duplicates)
+            existing = Timetable.query.filter_by(
+                user_id=user.id, course_code=course_code or title[:10],
+                day=day, start_time=start_time
+            ).first()
+            if existing:
+                continue
+
+            entry = Timetable(
+                course_code=course_code or title[:10],
+                course_name=title,
+                day=day,
+                start_time=start_time,
+                end_time=end_time,
+                venue=location,
+                class_type=class_type,
+                user_id=user.id
+            )
+            db.session.add(entry)
+            entries_added += 1
+
+        db.session.commit()
+        return jsonify({'message': f'{entries_added} classes imported to timetable'})
+
+    except Exception as e:
+        return jsonify({'error': f'Error parsing .ics: {str(e)}'}), 500
+
+
 # ============ COURSE REVIEWS ROUTES ============
 
 @app.route('/api/reviews', methods=['GET'])
