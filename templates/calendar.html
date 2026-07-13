@@ -43,6 +43,7 @@
         .event-lab { background: linear-gradient(135deg, #198754, #28a86d); }
         .event-exam { background: linear-gradient(135deg, #6f42c1, #8b5fd6); }
         .event-other { background: linear-gradient(135deg, #6c757d, #8c959d); }
+        .event-class { background: linear-gradient(135deg, #0891b2, #06b6d4); }
         .month-nav { font-size: 1.3rem; font-weight: 800; color: var(--utp-blue); letter-spacing: -0.02em; }
         .event-list-item { border-left: 4px solid var(--utp-gold); padding: 10px 14px; margin-bottom: 8px; background: white; border-radius: 0 10px 10px 0; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
         .nav-link { color: rgba(255,255,255,0.7) !important; font-size: 0.85rem; font-weight: 500; transition: color 0.2s; }
@@ -225,6 +226,33 @@
         async function loadEvents() {
             const res = await fetch(`/api/calendar/events?month=${currentMonth + 1}&year=${currentYear}`);
             allEvents = await res.json();
+
+            // Also load timetable classes as recurring events on the calendar
+            const ttRes = await fetch('/api/timetable');
+            const timetable = await ttRes.json();
+            const dayMap = {monday:1, tuesday:2, wednesday:3, thursday:4, friday:5, saturday:6, sunday:0};
+
+            // Generate timetable events for current month
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            for (let d = 1; d <= daysInMonth; d++) {
+                const date = new Date(currentYear, currentMonth, d);
+                const dayOfWeek = date.getDay();
+                timetable.forEach(tt => {
+                    if (dayMap[tt.day] === dayOfWeek) {
+                        allEvents.push({
+                            id: 'tt-' + tt.id + '-' + d,
+                            title: tt.course_code,
+                            event_type: tt.class_type === 'lab' ? 'lab' : 'other',
+                            course_code: tt.course_code,
+                            date: `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`,
+                            time: tt.start_time,
+                            description: `${tt.class_type} @ ${tt.venue || 'TBA'} (${tt.start_time}-${tt.end_time})`,
+                            is_timetable: true
+                        });
+                    }
+                });
+            }
+
             renderCalendar();
             renderUpcoming();
         }
@@ -251,9 +279,11 @@
                 const isToday = today.getFullYear() === currentYear && today.getMonth() === currentMonth && today.getDate() === d;
                 const dayEvents = allEvents.filter(e => e.date === dateStr);
 
-                let eventsHtml = dayEvents.map(e =>
-                    `<div class="event-dot event-${e.event_type}" onclick="showEventDetail(${e.id})" title="${e.title}">${e.course_code ? e.course_code+': ' : ''}${e.title}</div>`
-                ).join('');
+                let eventsHtml = dayEvents.map(e => {
+                    const cssClass = e.is_timetable ? 'event-class' : `event-${e.event_type}`;
+                    const clickHandler = e.is_timetable ? '' : `onclick="showEventDetail(${e.id})"`;
+                    return `<div class="event-dot ${cssClass}" ${clickHandler} title="${e.title}">${e.course_code ? e.course_code : e.title}</div>`;
+                }).join('');
 
                 container.innerHTML += `
                     <div class="calendar-day ${isToday ? 'today' : ''}" onclick="selectDate('${dateStr}')">
