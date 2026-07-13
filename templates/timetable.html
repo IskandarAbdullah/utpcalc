@@ -49,10 +49,16 @@
             </div>
             <div class="row g-2 mt-2">
                 <div class="col">
+                    <label class="form-label small">Repeat until (end of sem):</label>
+                    <input type="month" id="tt-ics-repeat" class="form-control form-control-sm" value="2025-10">
+                </div>
+            </div>
+            <div class="row g-2 mt-2">
+                <div class="col">
                     <button class="btn btn-utp btn-sm w-100" onclick="importICS('timetable')">
                         <i class="fas fa-redo me-1"></i> As Weekly Schedule
                     </button>
-                    <small class="text-muted d-block text-center mt-1">Repeats every week</small>
+                    <small class="text-muted d-block text-center mt-1">Repeats every week until end month</small>
                 </div>
                 <div class="col">
                     <button class="btn btn-gold btn-sm w-100" onclick="importICS('calendar')">
@@ -74,8 +80,10 @@
                 <div class="col-md-2"><input type="time" id="tt-end" class="form-control form-control-sm"></div>
                 <div class="col-md-1"><input type="text" id="tt-venue" class="form-control form-control-sm" placeholder="Venue"></div>
                 <div class="col-md-2"><select id="tt-type" class="form-select form-select-sm"><option value="lecture">Lecture</option><option value="tutorial">Tutorial</option><option value="lab">Lab</option></select></div>
+                <div class="col-md-2"><input type="month" id="tt-repeat" class="form-control form-control-sm" title="Repeat until month"></div>
                 <div class="col-md-1"><button class="btn btn-utp btn-sm w-100" onclick="addClass()">Add</button></div>
             </div>
+            <small class="text-muted mt-1 d-block">Set "Repeat until" to control when classes stop showing on calendar (e.g. end of semester)</small>
         </div>
         <div class="row" id="timetable-grid"></div>
     </div>
@@ -101,7 +109,8 @@
         async function addClass(){
             const cv=document.getElementById('tt-course').value;if(!cv)return alert('Select course');
             const[code,name]=cv.split('|');
-            const data={course_code:code,course_name:name||'',day:document.getElementById('tt-day').value,start_time:document.getElementById('tt-start').value,end_time:document.getElementById('tt-end').value,venue:document.getElementById('tt-venue').value,class_type:document.getElementById('tt-type').value};
+            const repeatUntil = document.getElementById('tt-repeat').value || '';
+            const data={course_code:code,course_name:name||'',day:document.getElementById('tt-day').value,start_time:document.getElementById('tt-start').value,end_time:document.getElementById('tt-end').value,venue:document.getElementById('tt-venue').value,class_type:document.getElementById('tt-type').value,repeat_until:repeatUntil};
             if(!data.start_time)return alert('Set start time');
             await fetch('/api/timetable',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
             loadTimetable();
@@ -115,6 +124,12 @@
 
             const formData = new FormData();
             formData.append('ics', fileInput.files[0]);
+
+            // Add repeat_until for timetable mode
+            if (mode === 'timetable') {
+                const repeatUntil = document.getElementById('tt-ics-repeat').value || '';
+                formData.append('repeat_until', repeatUntil);
+            }
 
             resultDiv.style.display = 'block';
             resultDiv.innerHTML = '<small class="text-info"><i class="fas fa-spinner fa-spin"></i> Importing...</small>';

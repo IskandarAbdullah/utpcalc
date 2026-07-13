@@ -256,8 +256,12 @@
                 const date = new Date(currentYear, currentMonth, d);
                 const dayOfWeek = date.getDay();
                 const dateStr = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const currentYM = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}`;
 
                 timetable.forEach(tt => {
+                    // Check if repeat_until is set and if current month exceeds it
+                    if (tt.repeat_until && currentYM > tt.repeat_until) return;
+
                     if (dayMap[tt.day] === dayOfWeek) {
                         // Check if attendance was marked for this class on this date
                         const att = attendance.find(a => a.course_code === tt.course_code && a.date === dateStr);

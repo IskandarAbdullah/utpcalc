@@ -971,6 +971,7 @@ def add_timetable():
         end_time=data.get('end_time', ''),
         venue=data.get('venue', ''),
         class_type=data.get('class_type', 'lecture'),
+        repeat_until=data.get('repeat_until', ''),
         user_id=user.id
     )
     db.session.add(entry)
@@ -999,6 +1000,8 @@ def import_timetable_ics():
     ics_file = request.files['ics']
     if not ics_file.filename.lower().endswith('.ics'):
         return jsonify({'error': 'File must be .ics'}), 400
+
+    repeat_until = request.form.get('repeat_until', '')
 
     try:
         content = ics_file.read().decode('utf-8')
@@ -1078,6 +1081,7 @@ def import_timetable_ics():
                 end_time=end_time,
                 venue=location,
                 class_type=class_type,
+                repeat_until=repeat_until,
                 user_id=user.id
             )
             db.session.add(entry)

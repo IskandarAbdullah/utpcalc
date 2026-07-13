@@ -351,6 +351,7 @@ class Timetable(db.Model):
     end_time = db.Column(db.String(10), nullable=False)
     venue = db.Column(db.String(50), nullable=True)
     class_type = db.Column(db.String(20), nullable=False, default='lecture')  # lecture, tutorial, lab
+    repeat_until = db.Column(db.String(10), nullable=True)  # YYYY-MM format e.g. "2025-10"
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
     def to_dict(self):
@@ -362,5 +363,6 @@ class Timetable(db.Model):
             'start_time': self.start_time,
             'end_time': self.end_time,
             'venue': self.venue,
-            'class_type': self.class_type
+            'class_type': self.class_type,
+            'repeat_until': self.repeat_until
         }
