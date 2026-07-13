@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#003366">
+    <title>UTP Marks - Feed</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --utp-blue: #003366; --utp-blue-light: #004080; --utp-gold: #FFB81C; --utp-gold-light: #ffc94d; --bg: #f0f2f5; }
+        * { box-sizing: border-box; }
+        body { background: var(--bg); font-family: 'Inter', sans-serif; padding-bottom: 70px; }
+        .navbar { background: linear-gradient(135deg, var(--utp-blue), var(--utp-blue-light)); padding: 12px 0; box-shadow: 0 4px 20px rgba(0,51,102,0.2); }
+        .navbar-brand { color: var(--utp-gold) !important; font-weight: 700; font-size: 1.05rem; }
+        .nav-link { color: rgba(255,255,255,0.7) !important; font-size: 0.85rem; font-weight: 500; }
+        .nav-link:hover, .nav-link.active { color: var(--utp-gold) !important; }
+
+        /* Post card */
+        .post-card { background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); margin-bottom: 20px; overflow: hidden; animation: fadeUp 0.4s ease; }
+        .post-header { display: flex; align-items: center; padding: 14px 18px; gap: 12px; }
+        .post-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--utp-blue), var(--utp-blue-light)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.9rem; }
+        .post-meta { flex: 1; }
+        .post-username { font-weight: 600; font-size: 0.9rem; color: #1f2937; }
+        .post-time { font-size: 0.72rem; color: #9ca3af; }
+        .post-type-badge { font-size: 0.65rem; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+        .type-certificate { background: #dbeafe; color: #1d4ed8; }
+        .type-achievement { background: #fef3cd; color: #92400e; }
+        .type-event { background: #d1fae5; color: #065f46; }
+        .type-general { background: #f3f4f6; color: #4b5563; }
+        .post-image { width: 100%; max-height: 500px; object-fit: cover; cursor: pointer; transition: transform 0.2s; }
+        .post-image:hover { transform: scale(1.01); }
+        .post-caption { padding: 14px 18px; font-size: 0.88rem; color: #374151; line-height: 1.5; }
+        .post-actions { display: flex; padding: 8px 18px 14px; gap: 20px; border-top: 1px solid #f0f0f0; }
+        .post-action { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.82rem; color: #6b7280; transition: all 0.2s; padding: 6px 10px; border-radius: 8px; border: none; background: none; }
+        .post-action:hover { color: var(--utp-blue); background: #f0f4ff; }
+        .post-action.liked { color: #ef4444; }
+        .post-action.liked i { animation: heartBeat 0.3s; }
+        @keyframes heartBeat { 0% { transform: scale(1); } 50% { transform: scale(1.3); } 100% { transform: scale(1); } }
+
+        /* Comments */
+        .comments-section { padding: 0 18px 14px; }
+        .comment-item { display: flex; gap: 8px; margin-bottom: 8px; }
+        .comment-avatar { width: 28px; height: 28px; border-radius: 50%; background: #e5e7eb; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: 600; color: #6b7280; flex-shrink: 0; }
+        .comment-body { background: #f8f9fb; border-radius: 12px; padding: 8px 12px; flex: 1; }
+        .comment-name { font-weight: 600; font-size: 0.75rem; color: #374151; }
+        .comment-text { font-size: 0.8rem; color: #4b5563; margin-top: 2px; }
+        .comment-input { display: flex; gap: 8px; padding: 10px 18px; border-top: 1px solid #f0f0f0; }
+        .comment-input input { flex: 1; border: 2px solid #e5e7eb; border-radius: 20px; padding: 8px 14px; font-size: 0.82rem; outline: none; transition: border-color 0.2s; }
+        .comment-input input:focus { border-color: var(--utp-gold); }
+        .comment-input button { background: var(--utp-blue); color: white; border: none; border-radius: 50%; width: 34px; height: 34px; cursor: pointer; transition: all 0.2s; }
+        .comment-input button:hover { background: var(--utp-blue-light); transform: scale(1.05); }
+        /* Create post */
+        .create-post { background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 18px; margin-bottom: 20px; }
+        .create-post textarea { width: 100%; border: 2px solid #e5e7eb; border-radius: 12px; padding: 12px; font-size: 0.88rem; resize: none; outline: none; transition: border-color 0.2s; font-family: 'Inter', sans-serif; }
+        .create-post textarea:focus { border-color: var(--utp-gold); }
+        .create-post-actions { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; gap: 10px; flex-wrap: wrap; }
+        .upload-preview { max-height: 200px; border-radius: 12px; margin-top: 10px; object-fit: cover; width: 100%; }
+        .btn-post { background: linear-gradient(135deg, var(--utp-gold), var(--utp-gold-light)); color: var(--utp-blue); border: none; border-radius: 20px; padding: 8px 24px; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
+        .btn-post:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(255,184,28,0.3); }
+        .file-label { cursor: pointer; color: var(--utp-blue); font-size: 0.82rem; font-weight: 500; padding: 6px 12px; border-radius: 8px; transition: background 0.2s; }
+        .file-label:hover { background: #f0f4ff; }
+
+        /* Bottom nav */
+        .bottom-nav { display: none; }
+        @media (max-width: 768px) {
+            .desktop-nav { display: none !important; }
+            .bottom-nav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: var(--utp-blue); z-index: 9999; justify-content: space-around; padding: 8px 0; box-shadow: 0 -4px 20px rgba(0,0,0,0.15); }
+            .bottom-nav a { color: rgba(255,255,255,0.6); text-decoration: none; text-align: center; font-size: 0.6rem; padding: 4px 6px; }
+            .bottom-nav a.active, .bottom-nav a:hover { color: var(--utp-gold); }
+            .bottom-nav i { display: block; font-size: 1.1rem; margin-bottom: 2px; }
+        }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark mb-3">
+        <div class="container">
+            <a class="navbar-brand" href="/"><i class="fas fa-graduation-cap me-1"></i>UTP Marks</a>
+            <div class="desktop-nav d-flex flex-row gap-3">
+                <a class="nav-link" href="/"><i class="fas fa-calculator me-1"></i>Marks</a>
+                <a class="nav-link" href="/calendar"><i class="fas fa-calendar me-1"></i>Calendar</a>
+                <a class="nav-link" href="/outlines"><i class="fas fa-file-pdf me-1"></i>Outlines</a>
+                <a class="nav-link active" href="/feed"><i class="fas fa-images me-1"></i>Feed</a>
+                <a class="nav-link" href="#" onclick="doLogout()"><i class="fas fa-sign-out-alt me-1"></i>Logout</a>
+            </div>
+        </div>
+    </nav>
+    <div class="bottom-nav">
+        <a href="/"><i class="fas fa-calculator"></i>Marks</a>
+        <a href="/calendar"><i class="fas fa-calendar"></i>Calendar</a>
+        <a href="/outlines"><i class="fas fa-file-pdf"></i>Outlines</a>
+        <a href="/feed" class="active"><i class="fas fa-images"></i>Feed</a>
+        <a href="#" onclick="doLogout()"><i class="fas fa-sign-out-alt"></i>Logout</a>
+    </div>
+
+    <div class="container" style="max-width: 600px;">
+        <!-- Create Post -->
+        <div class="create-post">
+            <textarea id="post-caption" rows="2" placeholder="Share your achievement, certificate, or event..."></textarea>
+            <img id="upload-preview" class="upload-preview" style="display:none;">
+            <div class="create-post-actions">
+                <div>
+                    <label class="file-label"><i class="fas fa-image me-1"></i>Photo<input type="file" id="post-image" accept="image/*" capture="environment" style="display:none;" onchange="previewImage(this)"></label>
+                    <select id="post-type" style="border:none; font-size:0.8rem; font-weight:500; color: var(--utp-blue); cursor:pointer;">
+                        <option value="general">📝 General</option>
+                        <option value="certificate">🏆 Certificate</option>
+                        <option value="achievement">⭐ Achievement</option>
+                        <option value="event">🎉 Event</option>
+                    </select>
+                </div>
+                <button class="btn-post" onclick="createPost()"><i class="fas fa-paper-plane me-1"></i>Post</button>
+            </div>
+        </div>
+
+        <!-- Feed -->
+        <div id="feed-container"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        async function doLogout() { await fetch('/api/auth/logout',{method:'POST'}); window.location.href='/login'; }
+
+        function previewImage(input) {
+            const preview = document.getElementById('upload-preview');
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => { preview.src = e.target.result; preview.style.display = 'block'; };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        async function createPost() {
+            const caption = document.getElementById('post-caption').value.trim();
+            const fileInput = document.getElementById('post-image');
+            const postType = document.getElementById('post-type').value;
+
+            if (!fileInput.files[0]) return alert('Please select an image');
+
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]);
+            formData.append('caption', caption);
+            formData.append('post_type', postType);
+
+            const res = await fetch('/api/posts', { method: 'POST', body: formData });
+            if (res.ok) {
+                document.getElementById('post-caption').value = '';
+                document.getElementById('upload-preview').style.display = 'none';
+                fileInput.value = '';
+                loadFeed();
+            }
+        }
+
+        async function loadFeed() {
+            const res = await fetch('/api/posts');
+            const posts = await res.json();
+            const container = document.getElementById('feed-container');
+
+            if (posts.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted py-5"><i class="fas fa-images fa-3x mb-3 d-block"></i><p>No posts yet. Share your first achievement!</p></div>';
+                return;
+            }
+
+            container.innerHTML = posts.map(p => `
+                <div class="post-card">
+                    <div class="post-header">
+                        <div class="post-avatar">${p.username.charAt(0).toUpperCase()}</div>
+                        <div class="post-meta">
+                            <div class="post-username">${p.username}</div>
+                            <div class="post-time">${timeAgo(p.created_at)}</div>
+                        </div>
+                        <span class="post-type-badge type-${p.post_type}">${p.post_type}</span>
+                    </div>
+                    ${p.caption ? `<div class="post-caption">${p.caption}</div>` : ''}
+                    <img class="post-image" src="${p.image_data}" alt="Post image">
+                    <div class="post-actions">
+                        <button class="post-action ${p.liked_by_me ? 'liked' : ''}" onclick="toggleLike(${p.id})">
+                            <i class="fas fa-heart"></i> ${p.likes_count}
+                        </button>
+                        <button class="post-action" onclick="toggleComments(${p.id})">
+                            <i class="fas fa-comment"></i> ${p.comments.length}
+                        </button>
+                    </div>
+                    <div class="comments-section" id="comments-${p.id}" style="display:none;">
+                        ${p.comments.map(c => `
+                            <div class="comment-item">
+                                <div class="comment-avatar">${c.username.charAt(0)}</div>
+                                <div class="comment-body">
+                                    <div class="comment-name">${c.username}</div>
+                                    <div class="comment-text">${c.text}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="comment-input">
+                        <input type="text" id="comment-input-${p.id}" placeholder="Write a comment..." onkeypress="if(event.key==='Enter')addComment(${p.id})">
+                        <button onclick="addComment(${p.id})"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function toggleLike(postId) {
+            await fetch(`/api/posts/${postId}/like`, { method: 'POST' });
+            loadFeed();
+        }
+
+        function toggleComments(postId) {
+            const el = document.getElementById(`comments-${postId}`);
+            el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        }
+
+        async function addComment(postId) {
+            const input = document.getElementById(`comment-input-${postId}`);
+            const text = input.value.trim();
+            if (!text) return;
+
+            await fetch(`/api/posts/${postId}/comments`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({text})
+            });
+            input.value = '';
+            loadFeed();
+        }
+
+        function timeAgo(dateStr) {
+            const now = new Date();
+            const date = new Date(dateStr);
+            const diff = Math.floor((now - date) / 1000);
+            if (diff < 60) return 'just now';
+            if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+            if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+            return Math.floor(diff/86400) + 'd ago';
+        }
+
+        loadFeed();
+    </script>
+</body>
+</html>

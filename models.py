@@ -230,3 +230,60 @@ class CourseOutline(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'text_preview': self.pdf_text[:200] + '...' if len(self.pdf_text) > 200 else self.pdf_text
         }
+
+
+class Post(db.Model):
+    __tablename__ = 'posts'
+
+    id = db.Column(db.Integer, primary_key=True)
+    caption = db.Column(db.Text, nullable=True)
+    image_data = db.Column(db.Text, nullable=False)  # base64 encoded image
+    post_type = db.Column(db.String(30), nullable=False, default='general')  # general, certificate, achievement, event
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    likes = db.relationship('PostLike', backref='post', lazy=True, cascade='all, delete-orphan')
+    comments = db.relationship('PostComment', backref='post', lazy=True, cascade='all, delete-orphan')
+
+    def to_dict(self, current_user_id=None):
+        user = User.query.get(self.user_id)
+        return {
+            'id': self.id,
+            'caption': self.caption,
+            'image_data': self.image_data,
+            'post_type': self.post_type,
+            'user_id': self.user_id,
+            'username': user.full_name if user else 'Unknown',
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'likes_count': len(self.likes),
+            'liked_by_me': any(l.user_id == current_user_id for l in self.likes) if current_user_id else False,
+            'comments': [c.to_dict() for c in self.comments]
+        }
+
+
+class PostLike(db.Model):
+    __tablename__ = 'post_likes'
+
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('posts.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class PostComment(db.Model):
+    __tablename__ = 'post_comments'
+
+    id = db.Column(db.Integer, primary_key=True)
+    text = db.Column(db.Text, nullable=False)
+    post_id = db.Column(db.Integer, db.ForeignKey('posts.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        user = User.query.get(self.user_id)
+        return {
+            'id': self.id,
+            'text': self.text,
+            'username': user.full_name if user else 'Unknown',
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }

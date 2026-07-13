@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, render_template, session, redirect, u
 from flask_cors import CORS
 from functools import wraps
 from config import Config
-from models import db, User, Semester, Course, Assessment, CalendarEvent, CourseOutline
+from models import db, User, Semester, Course, Assessment, CalendarEvent, CourseOutline, Post, PostLike, PostComment
 from ai_service import get_ai_response, analyze_performance, predict_grade, get_study_tips, extract_pdf_text, parse_assessments_from_pdf, ai_edit_assessments, ai_parse_calendar_events, ai_parse_pdf_calendar, ai_read_image
 from course_catalog import UTP_PROGRAMS
 
@@ -56,6 +56,13 @@ def outlines_page():
     if 'user_id' not in session:
         return redirect(url_for('login_page'))
     return render_template('outlines.html')
+
+
+@app.route('/feed')
+def feed_page():
+    if 'user_id' not in session:
+        return redirect(url_for('login_page'))
+    return render_template('feed.html')
 
 
 # ============ AUTH ROUTES ============
@@ -448,6 +455,91 @@ def delete_event(event_id):
     db.session.delete(event)
     db.session.commit()
     return jsonify({'message': 'Event deleted'}), 200
+
+
+# ============ FEED/POSTS ROUTES ============
+
+@app.route('/api/posts', methods=['GET'])
+@login_required
+def get_posts():
+    user = get_current_user()
+    posts = Post.query.order_by(Post.created_at.desc()).limit(50).all()
+    return jsonify([p.to_dict(current_user_id=user.id) for p in posts])
+
+
+@app.route('/api/posts', methods=['POST'])
+@login_required
+def create_post():
+    user = get_current_user()
+
+    if 'image' not in request.files:
+        return jsonify({'error': 'Image is required'}), 400
+
+    image_file = request.files['image']
+    caption = request.form.get('caption', '')
+    post_type = request.form.get('post_type', 'general')
+
+    import base64
+    image_data = base64.b64encode(image_file.read()).decode('utf-8')
+    ext = image_file.filename.rsplit('.', 1)[-1].lower() if '.' in image_file.filename else 'jpeg'
+    mime = f"image/{ext}" if ext in ['png', 'gif', 'webp'] else "image/jpeg"
+    image_b64 = f"data:{mime};base64,{image_data}"
+
+    post = Post(
+        caption=caption,
+        image_data=image_b64,
+        post_type=post_type,
+        user_id=user.id
+    )
+    db.session.add(post)
+    db.session.commit()
+    return jsonify(post.to_dict(current_user_id=user.id)), 201
+
+
+@app.route('/api/posts/<int:post_id>', methods=['DELETE'])
+@login_required
+def delete_post(post_id):
+    user = get_current_user()
+    post = Post.query.get_or_404(post_id)
+    if post.user_id != user.id:
+        return jsonify({'error': 'Not your post'}), 403
+    db.session.delete(post)
+    db.session.commit()
+    return jsonify({'message': 'Post deleted'})
+
+
+@app.route('/api/posts/<int:post_id>/like', methods=['POST'])
+@login_required
+def toggle_like(post_id):
+    user = get_current_user()
+    Post.query.get_or_404(post_id)
+
+    existing = PostLike.query.filter_by(post_id=post_id, user_id=user.id).first()
+    if existing:
+        db.session.delete(existing)
+        db.session.commit()
+        return jsonify({'liked': False})
+    else:
+        like = PostLike(post_id=post_id, user_id=user.id)
+        db.session.add(like)
+        db.session.commit()
+        return jsonify({'liked': True})
+
+
+@app.route('/api/posts/<int:post_id>/comments', methods=['POST'])
+@login_required
+def add_comment(post_id):
+    user = get_current_user()
+    Post.query.get_or_404(post_id)
+    data = request.get_json()
+
+    if not data or not data.get('text'):
+        return jsonify({'error': 'Comment text is required'}), 400
+
+    comment = PostComment(text=data['text'], post_id=post_id, user_id=user.id)
+    db.session.add(comment)
+    db.session.commit()
+    return jsonify(comment.to_dict()), 201
 
 
 # ============ OUTLINE ROUTES ============
