@@ -3,69 +3,55 @@ import re
 import base64
 from config import Config
 
-# ============ AI CLIENT (OpenRouter cloud or Ollama local) ============
+# ============ AI CLIENT (Gemini cloud or Ollama local) ============
 
 def _chat(messages, use_vision=False):
-    """Send chat to AI - uses OpenRouter if API key set, otherwise falls back to Ollama."""
+    """Send chat to AI - uses Gemini if API key set, otherwise falls back to Ollama."""
     if Config.USE_CLOUD:
-        return _chat_openrouter(messages, use_vision)
+        return _chat_gemini(messages, use_vision)
     else:
         return _chat_ollama(messages, use_vision)
 
 
-def _chat_openrouter(messages, use_vision=False):
-    """Chat via OpenRouter API (free models available)."""
-    import httpx
-    import time
+def _chat_gemini(messages, use_vision=False):
+    """Chat via Google Gemini API using official SDK."""
+    from google import genai
+    from google.genai import types
 
-    model = Config.OPENROUTER_VISION_MODEL if use_vision else Config.OPENROUTER_MODEL
-    headers = {
-        'Authorization': f'Bearer {Config.OPENROUTER_API_KEY}',
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://utpcalc.onrender.com',
-        'X-Title': 'UTP Mark Calculator'
-    }
+    client = genai.Client(api_key=Config.GEMINI_API_KEY)
 
-    # Convert to OpenAI format
-    openai_messages = []
+    # Build contents for Gemini
+    system_text = None
+    contents = []
+
     for msg in messages:
+        if msg['role'] == 'system':
+            system_text = msg['content']
+            continue
+
+        parts = []
+        if msg.get('content'):
+            parts.append(types.Part.from_text(text=msg['content']))
         if msg.get('images') and msg['images']:
-            content = [
-                {'type': 'text', 'text': msg['content']},
-                {'type': 'image_url', 'image_url': {'url': f"data:image/jpeg;base64,{msg['images'][0]}"}}
-            ]
-            openai_messages.append({'role': msg['role'], 'content': content})
-        else:
-            openai_messages.append({'role': msg['role'], 'content': msg['content']})
+            img_bytes = base64.b64decode(msg['images'][0])
+            parts.append(types.Part.from_bytes(data=img_bytes, mime_type='image/jpeg'))
 
-    payload = {
-        'model': model,
-        'messages': openai_messages,
-        'temperature': 0.7,
-        'max_tokens': 2048
-    }
+        role = 'user' if msg['role'] == 'user' else 'model'
+        contents.append(types.Content(role=role, parts=parts))
 
-    # Retry up to 5 times on rate limit, also try fallback models
-    models_to_try = [model, 'meta-llama/llama-3.2-3b-instruct:free', 'nousresearch/hermes-3-llama-3.1-405b:free', 'qwen/qwen3-coder:free']
+    config = types.GenerateContentConfig(
+        temperature=0.7,
+        max_output_tokens=2048,
+    )
+    if system_text:
+        config.system_instruction = system_text
 
-    for m in models_to_try:
-        payload['model'] = m
-        for attempt in range(3):
-            response = httpx.post(
-                'https://openrouter.ai/api/v1/chat/completions',
-                headers=headers,
-                json=payload,
-                timeout=60
-            )
-            if response.status_code == 200:
-                data = response.json()
-                return data['choices'][0]['message']['content']
-            elif response.status_code == 429:
-                time.sleep(2 * (attempt + 1))
-            else:
-                break  # Try next model
-
-    raise Exception('AI models are busy right now. Please try again in a minute.')
+    response = client.models.generate_content(
+        model=Config.GEMINI_MODEL,
+        contents=contents,
+        config=config
+    )
+    return response.text
 
 
 def _chat_ollama(messages, use_vision=False):
@@ -111,7 +97,7 @@ IMPORTANT RULES:
         return {
             'success': False,
             'error': str(e),
-            'response': 'AI service unavailable. Check your OpenRouter API key or Ollama connection.'
+            'response': 'AI service unavailable. Check your Gemini API key or Ollama connection.'
         }
 
 
