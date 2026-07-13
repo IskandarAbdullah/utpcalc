@@ -8,138 +8,143 @@
     <title>UTP Mark Calculator - Login</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --utp-blue: #003366; --utp-gold: #FFB81C; }
+        :root { --utp-blue: #003366; --utp-blue-light: #004080; --utp-gold: #FFB81C; --utp-gold-light: #ffc94d; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            background: linear-gradient(135deg, #003366 0%, #004080 50%, #001a33 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'Segoe UI', sans-serif;
+            min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            font-family: 'Inter', sans-serif; overflow: hidden;
+            background: linear-gradient(135deg, #001a33 0%, #003366 30%, #004080 60%, #002244 100%);
         }
+        .bg-animated { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
+        .bg-animated::before {
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: conic-gradient(from 0deg, #003366, #004080, #002244, #001a33, #003366);
+            animation: rotateBg 20s linear infinite;
+        }
+        @keyframes rotateBg { to { transform: rotate(360deg); } }
+        .orb { position: fixed; border-radius: 50%; filter: blur(80px); opacity: 0.4; z-index: 0; animation: float 8s ease-in-out infinite; }
+        .orb-1 { width: 400px; height: 400px; background: var(--utp-gold); top: -100px; right: -100px; }
+        .orb-2 { width: 300px; height: 300px; background: #0066cc; bottom: -80px; left: -80px; animation-delay: -3s; }
+        .orb-3 { width: 200px; height: 200px; background: var(--utp-gold-light); top: 50%; left: 20%; animation-delay: -5s; opacity: 0.2; }
+        @keyframes float { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-30px) scale(1.05); } }
         .login-card {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
-            max-width: 500px;
-            width: 100%;
+            position: relative; z-index: 10; background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(20px); border-radius: 24px;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+            max-width: 480px; width: 92%; overflow: hidden;
+            animation: cardEntrance 0.8s cubic-bezier(0.16,1,0.3,1);
         }
+        @keyframes cardEntrance { from { opacity: 0; transform: translateY(30px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
         .login-header {
-            background: var(--utp-blue);
-            padding: 30px;
-            text-align: center;
-            color: white;
+            background: linear-gradient(135deg, var(--utp-blue), var(--utp-blue-light));
+            padding: 36px 30px 20px; text-align: center; position: relative;
         }
-        .login-header h2 { color: var(--utp-gold); margin: 0; }
-        .login-header p { margin: 8px 0 0; opacity: 0.8; }
-        .login-body { padding: 30px; }
-        .btn-utp { background: var(--utp-blue); color: white; border: none; }
-        .btn-utp:hover { background: #004080; color: white; }
-        .btn-gold { background: var(--utp-gold); color: var(--utp-blue); border: none; font-weight: 600; }
-        .btn-gold:hover { background: #e6a519; color: var(--utp-blue); }
-        .form-control:focus { border-color: var(--utp-gold); box-shadow: 0 0 0 0.2rem rgba(255,184,28,0.25); }
-        .tab-btn { cursor: pointer; padding: 10px 20px; border: none; background: none; color: white; opacity: 0.7; }
-        .tab-btn.active { opacity: 1; border-bottom: 3px solid var(--utp-gold); font-weight: 600; }
-        .alert { font-size: 0.9rem; }
+        .logo-icon {
+            width: 64px; height: 64px; background: linear-gradient(135deg, var(--utp-gold), var(--utp-gold-light));
+            border-radius: 16px; display: inline-flex; align-items: center; justify-content: center;
+            margin-bottom: 14px; box-shadow: 0 8px 24px rgba(255,184,28,0.3);
+        }
+        .logo-icon i { font-size: 28px; color: var(--utp-blue); }
+        .login-header h2 { color: #fff; font-size: 1.5rem; font-weight: 700; }
+        .login-header h2 span { color: var(--utp-gold); }
+        .login-header p { color: rgba(255,255,255,0.6); font-size: 0.85rem; margin: 6px 0 0; }
+        .tab-container { display: flex; margin-top: 20px; background: rgba(0,0,0,0.2); border-radius: 12px; padding: 4px; }
+        .tab-btn {
+            flex: 1; cursor: pointer; padding: 10px 20px; border: none; background: none;
+            color: rgba(255,255,255,0.6); font-size: 0.9rem; font-weight: 500;
+            border-radius: 10px; transition: all 0.3s; font-family: 'Inter', sans-serif;
+        }
+        .tab-btn.active { color: var(--utp-blue); background: var(--utp-gold); font-weight: 600; box-shadow: 0 4px 12px rgba(255,184,28,0.3); }
+        .tab-btn:hover:not(.active) { color: rgba(255,255,255,0.9); }
+        .login-body { padding: 32px 30px 30px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-size: 0.82rem; font-weight: 600; color: #374151; margin-bottom: 6px; }
+        .input-wrapper { position: relative; }
+        .input-wrapper i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 0.9rem; z-index: 2; transition: color 0.3s; }
+        .input-wrapper input, .input-wrapper select {
+            width: 100%; padding: 12px 14px 12px 42px; border: 2px solid #e5e7eb;
+            border-radius: 12px; font-size: 0.92rem; font-family: 'Inter', sans-serif;
+            color: #1f2937; background: #f9fafb; transition: all 0.3s; outline: none;
+        }
+        .input-wrapper select { appearance: none; cursor: pointer; }
+        .input-wrapper input:focus, .input-wrapper select:focus { border-color: var(--utp-gold); background: #fff; box-shadow: 0 0 0 4px rgba(255,184,28,0.1); }
+        .input-wrapper:focus-within i { color: var(--utp-gold); }
+        .input-wrapper input::placeholder { color: #9ca3af; }
+        .btn-primary-custom {
+            width: 100%; padding: 14px; border: none; border-radius: 12px;
+            font-size: 0.95rem; font-weight: 600; font-family: 'Inter', sans-serif;
+            cursor: pointer; transition: all 0.3s; display: flex; align-items: center;
+            justify-content: center; gap: 8px; position: relative; overflow: hidden;
+        }
+        .btn-login { background: linear-gradient(135deg, var(--utp-blue), var(--utp-blue-light)); color: #fff; box-shadow: 0 4px 16px rgba(0,51,102,0.3); }
+        .btn-login:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,51,102,0.4); }
+        .btn-register { background: linear-gradient(135deg, var(--utp-gold), var(--utp-gold-light)); color: var(--utp-blue); box-shadow: 0 4px 16px rgba(255,184,28,0.3); }
+        .btn-register:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255,184,28,0.4); }
+        .btn-primary-custom::after { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent); transition: left 0.5s; }
+        .btn-primary-custom:hover::after { left: 100%; }
+        .form-hint { display: block; text-align: center; margin-top: 14px; font-size: 0.8rem; color: #6b7280; }
+        .alert-custom { border-radius: 12px; padding: 12px 16px; margin-bottom: 20px; font-size: 0.85rem; font-weight: 500; display: flex; align-items: center; gap: 10px; animation: alertSlide 0.3s; border: none; }
+        .alert-custom.alert-warning { background: #fef3cd; color: #856404; }
+        .alert-custom.alert-danger { background: #f8d7da; color: #842029; }
+        @keyframes alertSlide { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        #login-form, #register-form { animation: formFade 0.4s; }
+        @keyframes formFade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        #install-banner { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 9999; }
+        #install-btn {
+            background: linear-gradient(135deg, var(--utp-gold), var(--utp-gold-light));
+            color: var(--utp-blue); border: none; border-radius: 50px; padding: 14px 32px;
+            font-size: 0.95rem; font-weight: 700; font-family: 'Inter', sans-serif; cursor: pointer;
+            box-shadow: 0 8px 32px rgba(255,184,28,0.4);
+            transition: all 0.3s; animation: installGlow 2s ease-in-out infinite;
+            display: flex; align-items: center; gap: 8px;
+        }
+        #install-btn:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 12px 40px rgba(255,184,28,0.5); }
+        @keyframes installGlow { 0%,100% { box-shadow: 0 8px 32px rgba(255,184,28,0.4), 0 0 0 0 rgba(255,184,28,0.4); } 50% { box-shadow: 0 8px 32px rgba(255,184,28,0.4), 0 0 0 8px rgba(255,184,28,0); } }
+        @media (max-height: 700px) { body { align-items: flex-start; padding: 20px 0; overflow-y: auto; } }
+        @media (max-width: 520px) { .login-card { width: 96%; border-radius: 20px; } .login-header { padding: 28px 20px 16px; } .login-body { padding: 24px 20px; } }
     </style>
 </head>
 <body>
+    <div class="bg-animated"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+
     <div class="login-card">
         <div class="login-header">
-            <h2><i class="fas fa-graduation-cap me-2"></i>UTP Mark Calculator</h2>
-            <p>Powered by AI (Llama3)</p>
-            <div class="mt-3">
-                <button class="tab-btn active" onclick="showTab('login')">Login</button>
-                <button class="tab-btn" onclick="showTab('register')">Register</button>
+            <div class="logo-icon"><i class="fas fa-graduation-cap"></i></div>
+            <h2>UTP <span>Mark Calculator</span></h2>
+            <p><i class="fas fa-bolt me-1"></i>Powered by AI</p>
+            <div class="tab-container">
+                <button class="tab-btn active" onclick="showTab('login')"><i class="fas fa-sign-in-alt me-1"></i>Login</button>
+                <button class="tab-btn" onclick="showTab('register')"><i class="fas fa-user-plus me-1"></i>Register</button>
             </div>
         </div>
         <div class="login-body">
             <div id="alert-box"></div>
-
-            <!-- LOGIN FORM -->
+            <!-- LOGIN -->
             <div id="login-form">
-                <div class="mb-3">
-                    <label class="form-label">Username</label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="fas fa-user"></i></span>
-                        <input type="text" id="login-username" class="form-control" placeholder="Enter username">
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Password</label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                        <input type="password" id="login-password" class="form-control" placeholder="Enter password"
-                               onkeypress="if(event.key==='Enter')doLogin()">
-                    </div>
-                </div>
-                <button class="btn btn-utp w-100 py-2" onclick="doLogin()">
-                    <i class="fas fa-sign-in-alt me-2"></i>Login
-                </button>
+                <div class="form-group"><label>Username</label><div class="input-wrapper"><i class="fas fa-user"></i><input type="text" id="login-username" placeholder="Enter your username"></div></div>
+                <div class="form-group"><label>Password</label><div class="input-wrapper"><i class="fas fa-lock"></i><input type="password" id="login-password" placeholder="Enter your password" onkeypress="if(event.key==='Enter')doLogin()"></div></div>
+                <button class="btn-primary-custom btn-login" onclick="doLogin()"><i class="fas fa-arrow-right"></i> Sign In</button>
             </div>
-
-            <!-- REGISTER FORM -->
+            <!-- REGISTER -->
             <div id="register-form" style="display:none;">
-                <div class="mb-3">
-                    <label class="form-label">Full Name</label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="fas fa-id-card"></i></span>
-                        <input type="text" id="reg-fullname" class="form-control" placeholder="e.g. Ahmad Iskandar">
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Username</label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="fas fa-user"></i></span>
-                        <input type="text" id="reg-username" class="form-control" placeholder="Choose a username">
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Password</label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                        <input type="password" id="reg-password" class="form-control" placeholder="Choose a password">
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Programme</label>
-                    <select id="reg-program" class="form-select">
-                        <option value="">-- Select Your Programme --</option>
-                        <option value="cs">Bachelor of Computer Science (Hons)</option>
-                        <option value="ce">Bachelor of Computer Engineering (Hons)</option>
-                        <option value="ee">Bachelor of Electrical & Electronics Engineering (Hons)</option>
-                        <option value="me">Bachelor of Mechanical Engineering (Hons)</option>
-                        <option value="chem">Bachelor of Chemical Engineering (Hons)</option>
-                        <option value="civil">Bachelor of Civil Engineering (Hons)</option>
-                        <option value="petro">Bachelor of Petroleum Engineering (Hons)</option>
-                        <option value="ibm">Bachelor in Business Management (Hons)</option>
-                        <option value="is">Bachelor of Information Systems (Hons)</option>
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Current Semester</label>
-                    <select id="reg-semester" class="form-select">
-                        <option value="1">Semester 1</option>
-                        <option value="2">Semester 2</option>
-                        <option value="3">Semester 3</option>
-                        <option value="4">Semester 4</option>
-                        <option value="5">Semester 5</option>
-                        <option value="6">Semester 6</option>
-                        <option value="7">Semester 7</option>
-                        <option value="8">Semester 8</option>
-                    </select>
-                </div>
-                <button class="btn btn-gold w-100 py-2" onclick="doRegister()">
-                    <i class="fas fa-user-plus me-2"></i>Register & Start
-                </button>
-                <small class="d-block text-muted text-center mt-2">
-                    Your courses will be auto-loaded based on programme & semester
-                </small>
+                <div class="form-group"><label>Full Name</label><div class="input-wrapper"><i class="fas fa-id-card"></i><input type="text" id="reg-fullname" placeholder="e.g. Ahmad Iskandar"></div></div>
+                <div class="form-group"><label>Username</label><div class="input-wrapper"><i class="fas fa-user"></i><input type="text" id="reg-username" placeholder="Choose a username"></div></div>
+                <div class="form-group"><label>Password</label><div class="input-wrapper"><i class="fas fa-lock"></i><input type="password" id="reg-password" placeholder="Choose a password"></div></div>
+                <div class="form-group"><label>Programme</label><div class="input-wrapper"><i class="fas fa-building-columns"></i><select id="reg-program"><option value="">-- Select Programme --</option><option value="cs">Computer Science (Hons)</option><option value="ce">Computer Engineering (Hons)</option><option value="ee">Electrical & Electronics Eng. (Hons)</option><option value="me">Mechanical Engineering (Hons)</option><option value="chem">Chemical Engineering (Hons)</option><option value="civil">Civil Engineering (Hons)</option><option value="petro">Petroleum Engineering (Hons)</option><option value="ibm">Business Management (Hons)</option><option value="is">Information Systems (Hons)</option></select></div></div>
+                <div class="form-group"><label>Current Semester</label><div class="input-wrapper"><i class="fas fa-calendar-alt"></i><select id="reg-semester"><option value="1">Semester 1</option><option value="2">Semester 2</option><option value="3">Semester 3</option><option value="4">Semester 4</option><option value="5">Semester 5</option><option value="6">Semester 6</option><option value="7">Semester 7</option><option value="8">Semester 8</option></select></div></div>
+                <button class="btn-primary-custom btn-register" onclick="doRegister()"><i class="fas fa-rocket"></i> Register & Start</button>
+                <span class="form-hint"><i class="fas fa-magic me-1"></i>Courses auto-loaded based on programme & semester</span>
             </div>
         </div>
     </div>
+
+    <div id="install-banner"><button id="install-btn"><i class="fas fa-download"></i> Install App</button></div>
 
     <script>
         function showTab(tab) {
@@ -150,109 +155,46 @@
             });
             document.getElementById('alert-box').innerHTML = '';
         }
-
         function showAlert(msg, type) {
-            document.getElementById('alert-box').innerHTML = `
-                <div class="alert alert-${type} alert-dismissible fade show">
-                    ${msg}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>`;
+            const icon = {warning:'exclamation-triangle',danger:'times-circle',success:'check-circle'}[type]||'info-circle';
+            document.getElementById('alert-box').innerHTML = `<div class="alert-custom alert-${type}"><i class="fas fa-${icon}"></i><span>${msg}</span></div>`;
         }
-
         async function doLogin() {
             const username = document.getElementById('login-username').value.trim();
             const password = document.getElementById('login-password').value;
             if (!username || !password) return showAlert('Please fill in all fields', 'warning');
-
             try {
-                const res = await fetch('/api/auth/login', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({username, password})
-                });
+                const res = await fetch('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username,password}) });
                 const data = await res.json();
-                if (res.ok) {
-                    window.location.href = '/';
-                } else {
-                    showAlert(data.error, 'danger');
-                }
-            } catch (e) {
-                showAlert('Connection error', 'danger');
-            }
+                if (res.ok) { window.location.href = '/'; } else { showAlert(data.error, 'danger'); }
+            } catch(e) { showAlert('Connection error', 'danger'); }
         }
-
         async function doRegister() {
             const full_name = document.getElementById('reg-fullname').value.trim();
             const username = document.getElementById('reg-username').value.trim();
             const password = document.getElementById('reg-password').value;
             const program_id = document.getElementById('reg-program').value;
             const current_semester = document.getElementById('reg-semester').value;
-
-            if (!full_name || !username || !password || !program_id) {
-                return showAlert('Please fill in all fields', 'warning');
-            }
-
+            if (!full_name || !username || !password || !program_id) return showAlert('Please fill in all fields', 'warning');
             try {
-                const res = await fetch('/api/auth/register', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({full_name, username, password, program_id, current_semester})
-                });
+                const res = await fetch('/api/auth/register', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({full_name,username,password,program_id,current_semester}) });
                 const data = await res.json();
-                if (res.ok) {
-                    window.location.href = '/';
-                } else {
-                    showAlert(data.error, 'danger');
-                }
-            } catch (e) {
-                showAlert('Connection error', 'danger');
-            }
+                if (res.ok) { window.location.href = '/'; } else { showAlert(data.error, 'danger'); }
+            } catch(e) { showAlert('Connection error', 'danger'); }
         }
-    </script>
 
-    <!-- PWA Install Button -->
-    <div id="install-banner" style="position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:9999;">
-        <button id="install-btn" class="btn btn-gold btn-lg shadow-lg" style="border-radius:50px; padding:12px 30px;">
-            <i class="fas fa-download me-2"></i> Install App
-        </button>
-    </div>
-
-    <script>
+        // PWA Install
         let deferredPrompt;
         const installBanner = document.getElementById('install-banner');
         const installBtn = document.getElementById('install-btn');
-
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-        });
-
+        window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
         installBtn.addEventListener('click', async () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const result = await deferredPrompt.userChoice;
-                if (result.outcome === 'accepted') {
-                    installBanner.style.display = 'none';
-                }
-                deferredPrompt = null;
-            } else {
-                // Fallback: show instructions
-                alert('To install:\\n\\nAndroid Chrome: Tap ⋮ menu → "Add to Home Screen"\\n\\niPhone Safari: Tap Share → "Add to Home Screen"');
-            }
+            if (deferredPrompt) { deferredPrompt.prompt(); const r = await deferredPrompt.userChoice; if (r.outcome==='accepted') installBanner.style.display='none'; deferredPrompt=null; }
+            else { alert('To install:\n\nAndroid: Tap \u22ee menu \u2192 "Add to Home Screen"\niPhone: Tap Share \u2192 "Add to Home Screen"'); }
         });
-
-        window.addEventListener('appinstalled', () => {
-            installBanner.style.display = 'none';
-        });
-
-        // Hide if already installed as PWA
-        if (window.matchMedia('(display-mode: standalone)').matches) {
-            installBanner.style.display = 'none';
-        }
-
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/static/sw.js');
-        }
+        window.addEventListener('appinstalled', () => { installBanner.style.display = 'none'; });
+        if (window.matchMedia('(display-mode: standalone)').matches) installBanner.style.display = 'none';
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js');
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
