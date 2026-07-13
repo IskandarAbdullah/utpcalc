@@ -14,6 +14,7 @@ class User(db.Model):
     full_name = db.Column(db.String(100), nullable=False)
     program_id = db.Column(db.String(20), nullable=False)  # e.g., "cs", "ce", "me"
     current_semester = db.Column(db.Integer, nullable=False, default=1)  # 1-8
+    is_admin = db.Column(db.Boolean, nullable=False, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     semesters = db.relationship('Semester', backref='user', lazy=True, cascade='all, delete-orphan')
@@ -31,7 +32,9 @@ class User(db.Model):
             'username': self.username,
             'full_name': self.full_name,
             'program_id': self.program_id,
-            'current_semester': self.current_semester
+            'current_semester': self.current_semester,
+            'is_admin': self.is_admin,
+            'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
 

@@ -65,6 +65,16 @@ def feed_page():
     return render_template('feed.html')
 
 
+@app.route('/admin')
+def admin_page():
+    if 'user_id' not in session:
+        return redirect(url_for('login_page'))
+    user = User.query.get(session['user_id'])
+    if not user or not user.is_admin:
+        return redirect(url_for('index'))
+    return render_template('admin.html')
+
+
 # ============ AUTH ROUTES ============
 
 @app.route('/api/auth/register', methods=['POST'])
@@ -91,6 +101,9 @@ def register():
         current_semester=int(data['current_semester'])
     )
     user.set_password(data['password'])
+    # Make 'iskandar' the admin
+    if data['username'].lower() == 'iskandar':
+        user.is_admin = True
     db.session.add(user)
     db.session.commit()
 
@@ -455,6 +468,65 @@ def delete_event(event_id):
     db.session.delete(event)
     db.session.commit()
     return jsonify({'message': 'Event deleted'}), 200
+
+
+# ============ ADMIN ROUTES ============
+
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'user_id' not in session:
+            return jsonify({'error': 'Login required'}), 401
+        user = User.query.get(session['user_id'])
+        if not user or not user.is_admin:
+            return jsonify({'error': 'Admin access required'}), 403
+        return f(*args, **kwargs)
+    return decorated
+
+
+@app.route('/api/admin/users', methods=['GET'])
+@admin_required
+def admin_get_users():
+    users = User.query.order_by(User.created_at.desc()).all()
+    return jsonify([u.to_dict() for u in users])
+
+
+@app.route('/api/admin/users/<int:user_id>', methods=['DELETE'])
+@admin_required
+def admin_delete_user(user_id):
+    user = User.query.get_or_404(user_id)
+    if user.is_admin:
+        return jsonify({'error': 'Cannot delete admin'}), 400
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify({'message': f'User {user.username} deleted'})
+
+
+@app.route('/api/admin/posts', methods=['GET'])
+@admin_required
+def admin_get_posts():
+    posts = Post.query.order_by(Post.created_at.desc()).all()
+    return jsonify([p.to_dict() for p in posts])
+
+
+@app.route('/api/admin/posts/<int:post_id>', methods=['DELETE'])
+@admin_required
+def admin_delete_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    db.session.delete(post)
+    db.session.commit()
+    return jsonify({'message': 'Post deleted'})
+
+
+@app.route('/api/admin/stats', methods=['GET'])
+@admin_required
+def admin_stats():
+    return jsonify({
+        'total_users': User.query.count(),
+        'total_posts': Post.query.count(),
+        'total_courses': Course.query.count(),
+        'total_events': CalendarEvent.query.count()
+    })
 
 
 # ============ FEED/POSTS ROUTES ============

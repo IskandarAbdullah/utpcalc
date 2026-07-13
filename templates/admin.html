@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UTP Marks - Admin Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --utp-blue: #003366; --utp-blue-light: #004080; --utp-gold: #FFB81C; --bg: #f0f2f5; }
+        body { background: var(--bg); font-family: 'Inter', sans-serif; }
+        .navbar { background: linear-gradient(135deg, #1a1a2e, #16213e); padding: 12px 0; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .navbar-brand { color: #ff6b6b !important; font-weight: 700; }
+        .card { border: none; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+        .card-header { font-weight: 600; font-size: 0.85rem; padding: 14px 18px; }
+        .stat-card { text-align: center; padding: 20px; }
+        .stat-number { font-size: 2.5rem; font-weight: 800; color: var(--utp-blue); }
+        .stat-label { font-size: 0.8rem; color: #6b7280; font-weight: 500; }
+        .btn-danger-soft { background: #fee2e2; color: #dc2626; border: none; border-radius: 8px; font-weight: 500; transition: all 0.2s; }
+        .btn-danger-soft:hover { background: #dc2626; color: white; }
+        .user-row, .post-row { padding: 12px 0; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; justify-content: space-between; }
+        .user-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--utp-blue), var(--utp-blue-light)); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem; }
+        .nav-link { color: rgba(255,255,255,0.7) !important; font-size: 0.85rem; }
+        .nav-link:hover { color: #ff6b6b !important; }
+        .post-thumb { width: 50px; height: 50px; border-radius: 8px; object-fit: cover; }
+        .tab-btn { border: none; background: none; padding: 10px 20px; font-weight: 500; color: #6b7280; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; }
+        .tab-btn.active { color: var(--utp-blue); border-bottom-color: var(--utp-gold); }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="/admin"><i class="fas fa-shield-halved me-2"></i>Admin Panel</a>
+            <div class="d-flex gap-3">
+                <a class="nav-link" href="/"><i class="fas fa-arrow-left me-1"></i>Back to App</a>
+                <a class="nav-link" href="#" onclick="doLogout()"><i class="fas fa-sign-out-alt me-1"></i>Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Stats -->
+        <div class="row mb-4">
+            <div class="col-6 col-md-3 mb-3"><div class="card stat-card"><div class="stat-number" id="stat-users">0</div><div class="stat-label">Users</div></div></div>
+            <div class="col-6 col-md-3 mb-3"><div class="card stat-card"><div class="stat-number" id="stat-posts">0</div><div class="stat-label">Posts</div></div></div>
+            <div class="col-6 col-md-3 mb-3"><div class="card stat-card"><div class="stat-number" id="stat-courses">0</div><div class="stat-label">Courses</div></div></div>
+            <div class="col-6 col-md-3 mb-3"><div class="card stat-card"><div class="stat-number" id="stat-events">0</div><div class="stat-label">Events</div></div></div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="mb-3">
+            <button class="tab-btn active" onclick="showSection('users')"><i class="fas fa-users me-1"></i>Users</button>
+            <button class="tab-btn" onclick="showSection('posts')"><i class="fas fa-images me-1"></i>Posts</button>
+        </div>
+
+        <!-- Users Section -->
+        <div class="card" id="users-section">
+            <div class="card-header bg-dark text-white"><i class="fas fa-users me-1"></i> All Users</div>
+            <div class="card-body" id="users-list"></div>
+        </div>
+
+        <!-- Posts Section -->
+        <div class="card" id="posts-section" style="display:none;">
+            <div class="card-header bg-dark text-white"><i class="fas fa-images me-1"></i> All Posts</div>
+            <div class="card-body" id="posts-list"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        async function doLogout() { await fetch('/api/auth/logout',{method:'POST'}); window.location.href='/login'; }
+
+        function showSection(section) {
+            document.getElementById('users-section').style.display = section === 'users' ? 'block' : 'none';
+            document.getElementById('posts-section').style.display = section === 'posts' ? 'block' : 'none';
+            document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (section==='users'&&i===0)||(section==='posts'&&i===1)));
+        }
+
+        async function loadStats() {
+            const res = await fetch('/api/admin/stats');
+            const stats = await res.json();
+            document.getElementById('stat-users').textContent = stats.total_users;
+            document.getElementById('stat-posts').textContent = stats.total_posts;
+            document.getElementById('stat-courses').textContent = stats.total_courses;
+            document.getElementById('stat-events').textContent = stats.total_events;
+        }
+
+        async function loadUsers() {
+            const res = await fetch('/api/admin/users');
+            const users = await res.json();
+            const container = document.getElementById('users-list');
+            container.innerHTML = users.map(u => `
+                <div class="user-row">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="user-avatar">${u.full_name.charAt(0)}</div>
+                        <div>
+                            <div style="font-weight:600; font-size:0.9rem;">${u.full_name} ${u.is_admin ? '<span class="badge bg-danger">Admin</span>' : ''}</div>
+                            <div style="font-size:0.75rem; color:#9ca3af;">@${u.username} · ${u.program_id.toUpperCase()} · Sem ${u.current_semester}</div>
+                        </div>
+                    </div>
+                    ${!u.is_admin ? `<button class="btn btn-sm btn-danger-soft" onclick="deleteUser(${u.id}, '${u.username}')"><i class="fas fa-trash me-1"></i>Delete</button>` : '<span class="badge bg-success">Protected</span>'}
+                </div>
+            `).join('');
+        }
+
+        async function loadPosts() {
+            const res = await fetch('/api/admin/posts');
+            const posts = await res.json();
+            const container = document.getElementById('posts-list');
+            if (posts.length === 0) { container.innerHTML = '<p class="text-muted text-center">No posts</p>'; return; }
+            container.innerHTML = posts.map(p => `
+                <div class="post-row">
+                    <div class="d-flex align-items-center gap-3">
+                        <img src="${p.image_data}" class="post-thumb" alt="">
+                        <div>
+                            <div style="font-weight:600; font-size:0.85rem;">${p.username}</div>
+                            <div style="font-size:0.75rem; color:#6b7280;">${p.caption ? p.caption.substring(0,50) : 'No caption'} · ${p.post_type} · ❤️ ${p.likes_count}</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-danger-soft" onclick="deletePost(${p.id})"><i class="fas fa-trash me-1"></i>Delete</button>
+                </div>
+            `).join('');
+        }
+
+        async function deleteUser(id, name) {
+            if (!confirm(`Delete user @${name}? This removes all their data.`)) return;
+            await fetch(`/api/admin/users/${id}`, {method:'DELETE'});
+            loadUsers(); loadStats();
+        }
+
+        async function deletePost(id) {
+            if (!confirm('Delete this post?')) return;
+            await fetch(`/api/admin/posts/${id}`, {method:'DELETE'});
+            loadPosts(); loadStats();
+        }
+
+        loadStats(); loadUsers(); loadPosts();
+    </script>
+</body>
+</html>
