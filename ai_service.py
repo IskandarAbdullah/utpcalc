@@ -56,7 +56,10 @@ def _chat_gemini(messages, use_vision=False):
 
 def _chat_ollama(messages, use_vision=False):
     """Chat via local Ollama."""
-    import ollama
+    try:
+        import ollama
+    except ImportError:
+        raise Exception('Ollama not installed. Set GEMINI_API_KEY for cloud AI.')
 
     model = Config.OLLAMA_VISION_MODEL if use_vision else Config.OLLAMA_MODEL
     response = ollama.chat(model=model, messages=messages)
