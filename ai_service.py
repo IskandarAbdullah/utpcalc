@@ -3,55 +3,61 @@ import re
 import base64
 from config import Config
 
-# ============ AI CLIENT (Groq cloud or Ollama local) ============
+# ============ AI CLIENT (Gemini cloud or Ollama local) ============
 
 def _chat(messages, use_vision=False):
-    """Send chat to AI - uses Groq if API key set, otherwise falls back to Ollama."""
-    if Config.USE_GROQ:
-        return _chat_groq(messages, use_vision)
+    """Send chat to AI - uses Gemini if API key set, otherwise falls back to Ollama."""
+    if Config.USE_GEMINI:
+        return _chat_gemini(messages, use_vision)
     else:
         return _chat_ollama(messages, use_vision)
 
 
-def _chat_groq(messages, use_vision=False):
-    """Chat via Groq API (free cloud)."""
+def _chat_gemini(messages, use_vision=False):
+    """Chat via Google Gemini API (free tier)."""
     import httpx
 
-    model = Config.GROQ_VISION_MODEL if use_vision else Config.GROQ_MODEL
-    headers = {
-        'Authorization': f'Bearer {Config.GROQ_API_KEY}',
-        'Content-Type': 'application/json'
-    }
+    model = Config.GEMINI_VISION_MODEL if use_vision else Config.GEMINI_MODEL
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={Config.GEMINI_API_KEY}"
 
-    # Convert messages to Groq/OpenAI format
-    groq_messages = []
+    # Convert messages to Gemini format
+    contents = []
+    system_instruction = None
+
     for msg in messages:
-        if 'images' in msg and msg['images']:
-            # Vision message with image
-            content = [
-                {'type': 'text', 'text': msg['content']},
-                {'type': 'image_url', 'image_url': {'url': f"data:image/jpeg;base64,{msg['images'][0]}"}}
-            ]
-            groq_messages.append({'role': msg['role'], 'content': content})
-        else:
-            groq_messages.append({'role': msg['role'], 'content': msg['content']})
+        role = msg['role']
+        if role == 'system':
+            system_instruction = msg['content']
+            continue
 
-    payload = {
-        'model': model,
-        'messages': groq_messages,
+        parts = []
+        if msg.get('content'):
+            parts.append({'text': msg['content']})
+        if msg.get('images') and msg['images']:
+            parts.append({
+                'inline_data': {
+                    'mime_type': 'image/jpeg',
+                    'data': msg['images'][0]
+                }
+            })
+
+        gemini_role = 'user' if role == 'user' else 'model'
+        contents.append({'role': gemini_role, 'parts': parts})
+
+    payload = {'contents': contents}
+    if system_instruction:
+        payload['system_instruction'] = {'parts': [{'text': system_instruction}]}
+
+    payload['generationConfig'] = {
         'temperature': 0.7,
-        'max_tokens': 2048
+        'maxOutputTokens': 2048
     }
 
-    response = httpx.post(
-        'https://api.groq.com/openai/v1/chat/completions',
-        headers=headers,
-        json=payload,
-        timeout=60
-    )
+    response = httpx.post(url, json=payload, timeout=60)
     response.raise_for_status()
     data = response.json()
-    return data['choices'][0]['message']['content']
+
+    return data['candidates'][0]['content']['parts'][0]['text']
 
 
 def _chat_ollama(messages, use_vision=False):
