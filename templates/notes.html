@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UTP Marks - Lecture Notes & Quiz</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root{--utp-blue:#003366;--utp-gold:#FFB81C;--bg:#f0f2f5}
+        body{background:var(--bg);font-family:'Inter',sans-serif;padding-bottom:80px}
+        .navbar{background:linear-gradient(135deg,var(--utp-blue),#004080);padding:12px 0;box-shadow:0 4px 20px rgba(0,51,102,0.2)}
+        .navbar-brand{color:var(--utp-gold)!important;font-weight:700}
+        .nav-link{color:rgba(255,255,255,0.7)!important;font-size:0.85rem}.nav-link:hover,.nav-link.active{color:var(--utp-gold)!important}
+        .card{border:none;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.06)}
+        .form-control,.form-select{border-radius:10px;border:2px solid #e5e7eb;font-size:0.85rem}
+        .form-control:focus,.form-select:focus{border-color:var(--utp-gold);box-shadow:0 0 0 3px rgba(255,184,28,0.1)}
+        .btn-utp{background:linear-gradient(135deg,var(--utp-blue),#004080);color:white;border:none;border-radius:10px;font-weight:600}
+        .btn-utp:hover{color:white;transform:translateY(-1px)}
+        .btn-gold{background:linear-gradient(135deg,var(--utp-gold),#ffc94d);color:var(--utp-blue);border:none;border-radius:10px;font-weight:600}
+        .btn-gold:hover{color:var(--utp-blue);transform:translateY(-1px)}
+        .note-card{padding:14px;border-radius:12px;background:white;box-shadow:0 2px 8px rgba(0,0,0,0.04);margin-bottom:12px;border-left:4px solid var(--utp-blue)}
+        .note-content{max-height:100px;overflow:hidden;font-size:0.8rem;color:#4b5563}
+        .quiz-question{background:white;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.04)}
+        .quiz-option{padding:10px 14px;border:2px solid #e5e7eb;border-radius:10px;margin-bottom:6px;cursor:pointer;transition:all 0.2s;font-size:0.88rem}
+        .quiz-option:hover{border-color:var(--utp-gold);background:#fffbeb}
+        .quiz-option.selected{border-color:var(--utp-blue);background:#eff6ff}
+        .quiz-option.correct{border-color:#22c55e;background:#dcfce7}
+        .quiz-option.wrong{border-color:#ef4444;background:#fee2e2}
+        .bottom-nav{display:none}
+        @media(max-width:768px){
+            .bottom-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--utp-blue);z-index:9999;justify-content:space-around;padding:8px 0;box-shadow:0 -4px 20px rgba(0,0,0,0.15)}
+            .bottom-nav a{color:rgba(255,255,255,0.6);text-decoration:none;text-align:center;font-size:0.6rem;padding:4px 6px}
+            .bottom-nav a.active,.bottom-nav a:hover{color:var(--utp-gold)}
+            .bottom-nav i{display:block;font-size:1.1rem;margin-bottom:2px}
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark mb-3">
+        <div class="container">
+            <a class="navbar-brand" href="/"><i class="fas fa-graduation-cap me-1"></i>UTP Marks</a>
+            <div class="d-flex gap-3">
+                <a class="nav-link" href="/">Marks</a><a class="nav-link" href="/calendar">Calendar</a>
+                <a class="nav-link active" href="/notes">Notes</a><a class="nav-link" href="/profile">Profile</a>
+            </div>
+        </div>
+    </nav>
+    <div class="bottom-nav">
+        <a href="/"><i class="fas fa-calculator"></i>Marks</a>
+        <a href="/calendar"><i class="fas fa-calendar"></i>Calendar</a>
+        <a href="/attendance"><i class="fas fa-clipboard-check"></i>Attend</a>
+        <a href="/notes" class="active"><i class="fas fa-book"></i>Notes</a>
+        <a href="/profile"><i class="fas fa-user"></i>Profile</a>
+    </div>
+
+    <div class="container" style="max-width:900px;">
+        <div class="row">
+            <!-- Upload & Course Filter -->
+            <div class="col-md-4 mb-3">
+                <div class="card p-3 mb-3">
+                    <h6><i class="fas fa-upload me-1"></i>Add Lecture Note</h6>
+                    <div class="mb-2"><select id="note-course" class="form-select form-select-sm"><option value="">Select Course</option></select></div>
+                    <div class="mb-2"><input type="text" id="note-title" class="form-control form-control-sm" placeholder="Title (e.g. Chapter 3 - Arrays)"></div>
+                    <div class="mb-2"><input type="number" id="note-week" class="form-control form-control-sm" placeholder="Week number" min="1" max="14"></div>
+                    <div class="mb-2"><input type="file" id="note-file" class="form-control form-control-sm" accept=".pdf,image/*"></div>
+                    <div class="mb-2"><textarea id="note-text" class="form-control form-control-sm" rows="3" placeholder="Or type/paste notes here..."></textarea></div>
+                    <button class="btn btn-utp btn-sm w-100" onclick="uploadNote()"><i class="fas fa-plus me-1"></i>Save Note</button>
+                    <div id="note-status" class="mt-2" style="display:none;"></div>
+                </div>
+
+                <!-- Generate Quiz -->
+                <div class="card p-3">
+                    <h6><i class="fas fa-brain me-1"></i>Generate Quiz</h6>
+                    <small class="text-muted d-block mb-2">AI generates questions from your notes</small>
+                    <div class="mb-2"><select id="quiz-course" class="form-select form-select-sm"><option value="">All courses</option></select></div>
+                    <div class="mb-2">
+                        <select id="quiz-count" class="form-select form-select-sm">
+                            <option value="5">5 questions</option>
+                            <option value="10">10 questions</option>
+                            <option value="15">15 questions</option>
+                            <option value="20">20 questions</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-gold btn-sm w-100" onclick="generateQuiz()"><i class="fas fa-magic me-1"></i>Generate Quiz</button>
+                </div>
+            </div>
+
+            <!-- Notes List & Quiz -->
+            <div class="col-md-8">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0"><i class="fas fa-book-open me-1"></i>My Notes</h6>
+                    <select id="filter-course" class="form-select form-select-sm" style="width:auto;" onchange="loadNotes()">
+                        <option value="">All Courses</option>
+                    </select>
+                </div>
+                <div id="notes-list"></div>
+
+                <!-- Quiz Section -->
+                <div id="quiz-section" style="display:none;">
+                    <hr>
+                    <h6><i class="fas fa-question-circle me-1"></i>Quiz <span id="quiz-score" class="badge bg-primary ms-2" style="display:none;"></span></h6>
+                    <div id="quiz-container"></div>
+                    <button id="quiz-submit" class="btn btn-utp btn-sm mt-2" onclick="submitQuiz()" style="display:none;">
+                        <i class="fas fa-check me-1"></i>Check Answers
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let quizData = [];
+        let userAnswers = {};
+
+        async function loadCourses() {
+            const r = await fetch('/api/semesters');
+            const sems = await r.json();
+            const selects = ['note-course', 'quiz-course', 'filter-course'];
+            selects.forEach(id => {
+                const sel = document.getElementById(id);
+                sems.forEach(s => s.courses.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.code;
+                    opt.textContent = `${c.code} - ${c.name}`;
+                    sel.appendChild(opt);
+                }));
+            });
+        }
+
+        async function loadNotes() {
+            const course = document.getElementById('filter-course').value;
+            const url = course ? `/api/notes?course_code=${course}` : '/api/notes';
+            const r = await fetch(url);
+            const notes = await r.json();
+            const el = document.getElementById('notes-list');
+            if (!notes.length) { el.innerHTML = '<p class="text-muted text-center small py-3">No notes yet. Upload your first lecture note.</p>'; return; }
+            el.innerHTML = notes.map(n => `
+                <div class="note-card">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong class="small">${n.title}</strong>
+                            <span class="badge bg-primary ms-1" style="font-size:0.65rem;">${n.course_code}</span>
+                            ${n.week_number ? `<span class="badge bg-secondary ms-1" style="font-size:0.65rem;">Week ${n.week_number}</span>` : ''}
+                        </div>
+                        <button class="btn btn-sm p-0 text-danger" onclick="deleteNote(${n.id})"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="note-content mt-1">${n.content.substring(0, 200)}...</div>
+                    ${n.filename ? `<small class="text-muted"><i class="fas fa-file me-1"></i>${n.filename}</small>` : ''}
+                </div>
+            `).join('');
+        }
+
+        async function uploadNote() {
+            const course = document.getElementById('note-course').value;
+            const title = document.getElementById('note-title').value.trim();
+            const week = document.getElementById('note-week').value;
+            const fileInput = document.getElementById('note-file');
+            const textContent = document.getElementById('note-text').value.trim();
+            const statusDiv = document.getElementById('note-status');
+
+            if (!course || !title) return alert('Select course and enter title');
+            if (!fileInput.files[0] && !textContent) return alert('Upload a file or type notes');
+
+            const formData = new FormData();
+            formData.append('course_code', course);
+            formData.append('title', title);
+            if (week) formData.append('week_number', week);
+            if (fileInput.files[0]) formData.append('file', fileInput.files[0]);
+            if (textContent) formData.append('content', textContent);
+
+            statusDiv.style.display = 'block';
+            statusDiv.innerHTML = '<small class="text-info"><i class="fas fa-spinner fa-spin"></i> Saving...</small>';
+
+            const res = await fetch('/api/notes', { method: 'POST', body: formData });
+            const data = await res.json();
+            if (res.ok) {
+                statusDiv.innerHTML = '<small class="text-success"><i class="fas fa-check me-1"></i>Saved!</small>';
+                document.getElementById('note-title').value = '';
+                document.getElementById('note-text').value = '';
+                fileInput.value = '';
+                loadNotes();
+            } else {
+                statusDiv.innerHTML = `<small class="text-danger">${data.error}</small>`;
+            }
+        }
+
+        async function deleteNote(id) {
+            if (!confirm('Delete this note?')) return;
+            await fetch(`/api/notes/${id}`, { method: 'DELETE' });
+            loadNotes();
+        }
+
+        async function generateQuiz() {
+            const course = document.getElementById('quiz-course').value;
+            const num = document.getElementById('quiz-count').value;
+            const container = document.getElementById('quiz-container');
+            const section = document.getElementById('quiz-section');
+
+            section.style.display = 'block';
+            container.innerHTML = '<p class="text-info small"><i class="fas fa-spinner fa-spin me-1"></i>AI is generating your quiz...</p>';
+            document.getElementById('quiz-submit').style.display = 'none';
+            document.getElementById('quiz-score').style.display = 'none';
+
+            const res = await fetch('/api/notes/generate-quiz', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ course_code: course, num_questions: num })
+            });
+            const data = await res.json();
+
+            if (data.success && data.questions && data.questions.length > 0) {
+                quizData = data.questions;
+                userAnswers = {};
+                renderQuiz();
+                document.getElementById('quiz-submit').style.display = 'block';
+            } else {
+                container.innerHTML = `<p class="text-danger small">${data.error || 'Could not generate quiz. Add more notes first.'}</p>`;
+            }
+        }
+
+        function renderQuiz() {
+            const container = document.getElementById('quiz-container');
+            container.innerHTML = quizData.map((q, i) => `
+                <div class="quiz-question">
+                    <p class="fw-bold small mb-2">${i+1}. ${q.question}</p>
+                    ${q.options.map((opt, j) => {
+                        const letter = String.fromCharCode(65 + j);
+                        return `<div class="quiz-option" id="q${i}-${letter}" onclick="selectAnswer(${i},'${letter}')">${opt}</div>`;
+                    }).join('')}
+                    <div class="explanation" id="exp-${i}" style="display:none;"></div>
+                </div>
+            `).join('');
+        }
+
+        function selectAnswer(qIndex, letter) {
+            // Deselect previous
+            document.querySelectorAll(`[id^="q${qIndex}-"]`).forEach(el => el.classList.remove('selected'));
+            document.getElementById(`q${qIndex}-${letter}`).classList.add('selected');
+            userAnswers[qIndex] = letter;
+        }
+
+        function submitQuiz() {
+            let correct = 0;
+            quizData.forEach((q, i) => {
+                const userAns = userAnswers[i];
+                const correctAns = q.correct;
+                document.querySelectorAll(`[id^="q${i}-"]`).forEach(el => {
+                    el.style.pointerEvents = 'none';
+                    el.classList.remove('selected');
+                });
+                if (correctAns) document.getElementById(`q${i}-${correctAns}`).classList.add('correct');
+                if (userAns && userAns !== correctAns) document.getElementById(`q${i}-${userAns}`).classList.add('wrong');
+                if (userAns === correctAns) correct++;
+
+                const expEl = document.getElementById(`exp-${i}`);
+                expEl.style.display = 'block';
+                expEl.innerHTML = `<small class="text-muted mt-1 d-block"><i class="fas fa-lightbulb me-1"></i>${q.explanation || ''}</small>`;
+            });
+
+            const score = document.getElementById('quiz-score');
+            score.style.display = 'inline';
+            score.textContent = `${correct}/${quizData.length} (${Math.round(correct/quizData.length*100)}%)`;
+            document.getElementById('quiz-submit').style.display = 'none';
+        }
+
+        loadCourses(); loadNotes();
+    </script>
+</body>
+</html>

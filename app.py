@@ -2,8 +2,9 @@ from flask import Flask, request, jsonify, render_template, session, redirect, u
 from flask_cors import CORS
 from functools import wraps
 from config import Config
-from models import db, User, Semester, Course, Assessment, CalendarEvent, CourseOutline, Post, PostLike, PostComment, Attendance, CourseReview, Timetable
-from ai_service import get_ai_response, analyze_performance, predict_grade, get_study_tips, extract_pdf_text, parse_assessments_from_pdf, ai_edit_assessments, ai_parse_calendar_events, ai_parse_pdf_calendar, ai_read_image
+from models import db, User, Semester, Course, Assessment, CalendarEvent, CourseOutline, Post, PostLike, PostComment, Attendance, CourseReview, Timetable, LectureNote
+from ai_service import get_ai_response, analyze_performance, predict_grade, get_study_tips, extract_pdf_text, parse_assessments_from_pdf, ai_edit_assessments, ai_parse_calendar_events, ai_parse_pdf_calendar, ai_read_image, _chat
+import re
 from course_catalog import UTP_PROGRAMS
 
 app = Flask(__name__)
@@ -101,6 +102,13 @@ def attendance_page():
     if 'user_id' not in session:
         return redirect(url_for('login_page'))
     return render_template('attendance.html')
+
+
+@app.route('/notes')
+def notes_page():
+    if 'user_id' not in session:
+        return redirect(url_for('login_page'))
+    return render_template('notes.html')
 
 
 # ============ AUTH ROUTES ============
@@ -1140,6 +1148,126 @@ def get_leaderboard():
     for i, e in enumerate(entries):
         e['rank'] = i + 1
     return jsonify(entries)
+
+
+# ============ LECTURE NOTES ROUTES ============
+
+@app.route('/api/notes', methods=['GET'])
+@login_required
+def get_notes():
+    user = get_current_user()
+    course_code = request.args.get('course_code')
+    query = LectureNote.query.filter_by(user_id=user.id)
+    if course_code:
+        query = query.filter_by(course_code=course_code)
+    notes = query.order_by(LectureNote.week_number, LectureNote.created_at.desc()).all()
+    return jsonify([n.to_dict() for n in notes])
+
+
+@app.route('/api/notes', methods=['POST'])
+@login_required
+def add_note():
+    user = get_current_user()
+
+    course_code = request.form.get('course_code', '').strip()
+    title = request.form.get('title', '').strip()
+    week_number = request.form.get('week_number', type=int)
+    content = ''
+    filename = ''
+
+    if not course_code or not title:
+        return jsonify({'error': 'course_code and title required'}), 400
+
+    # Handle file upload (PDF or image)
+    if 'file' in request.files and request.files['file'].filename:
+        file = request.files['file']
+        filename = file.filename
+        if file.filename.lower().endswith('.pdf'):
+            content = extract_pdf_text(file)
+        elif file.content_type.startswith('image/'):
+            image_bytes = file.read()
+            result = ai_read_image(image_bytes, f"Read all text from this lecture note for {course_code}. Return all text content.")
+            content = result.get('raw_text', '') or result.get('summary', '')
+    elif request.form.get('content'):
+        content = request.form.get('content')
+
+    if not content:
+        return jsonify({'error': 'Could not extract content from file'}), 400
+
+    note = LectureNote(
+        course_code=course_code,
+        title=title,
+        content=content,
+        filename=filename,
+        week_number=week_number,
+        user_id=user.id
+    )
+    db.session.add(note)
+    db.session.commit()
+    return jsonify(note.to_dict()), 201
+
+
+@app.route('/api/notes/<int:note_id>', methods=['DELETE'])
+@login_required
+def delete_note(note_id):
+    note = LectureNote.query.get_or_404(note_id)
+    db.session.delete(note)
+    db.session.commit()
+    return jsonify({'message': 'Note deleted'})
+
+
+@app.route('/api/notes/generate-quiz', methods=['POST'])
+@login_required
+def generate_quiz():
+    """Generate quiz questions from lecture notes using AI."""
+    user = get_current_user()
+    data = request.get_json()
+
+    course_code = data.get('course_code', '')
+    num_questions = int(data.get('num_questions', 5))
+    note_ids = data.get('note_ids', [])
+
+    # Get notes content
+    if note_ids:
+        notes = LectureNote.query.filter(LectureNote.id.in_(note_ids), LectureNote.user_id == user.id).all()
+    elif course_code:
+        notes = LectureNote.query.filter_by(user_id=user.id, course_code=course_code).all()
+    else:
+        return jsonify({'error': 'Provide course_code or note_ids'}), 400
+
+    if not notes:
+        return jsonify({'error': 'No notes found'}), 404
+
+    # Combine notes content
+    notes_text = "\n\n".join([f"--- {n.title} ---\n{n.content[:2000]}" for n in notes])
+
+    # Generate quiz with AI
+    messages = [
+        {'role': 'system', 'content': f"""You are a quiz generator for university students. Generate exactly {num_questions} multiple choice questions based on the lecture notes provided.
+
+You MUST respond with ONLY a valid JSON object:
+{{"questions": [
+  {{"question": "...", "options": ["A) ...", "B) ...", "C) ...", "D) ..."], "correct": "A", "explanation": "..."}}
+]}}
+
+Rules:
+- Each question has exactly 4 options (A, B, C, D)
+- correct field is just the letter (A, B, C, or D)
+- Questions should test understanding, not just memorization
+- Include a brief explanation for the correct answer"""},
+        {'role': 'user', 'content': f"Generate {num_questions} quiz questions from these lecture notes:\n\n{notes_text[:4000]}"}
+    ]
+
+    try:
+        content = _chat(messages)
+        import json as json_mod
+        json_match = re.search(r'\{.*\}', content, re.DOTALL)
+        if json_match:
+            result = json_mod.loads(json_match.group(0))
+            return jsonify({'success': True, 'questions': result.get('questions', [])})
+        return jsonify({'success': False, 'error': 'AI did not return valid quiz format'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 
 # ============ OUTLINE ROUTES ============

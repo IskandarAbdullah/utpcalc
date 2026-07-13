@@ -366,3 +366,27 @@ class Timetable(db.Model):
             'class_type': self.class_type,
             'repeat_until': self.repeat_until
         }
+
+
+class LectureNote(db.Model):
+    __tablename__ = 'lecture_notes'
+
+    id = db.Column(db.Integer, primary_key=True)
+    course_code = db.Column(db.String(20), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text, nullable=False)  # extracted text from PDF/image or typed
+    filename = db.Column(db.String(200), nullable=True)
+    week_number = db.Column(db.Integer, nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'course_code': self.course_code,
+            'title': self.title,
+            'content': self.content,
+            'filename': self.filename,
+            'week_number': self.week_number,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
