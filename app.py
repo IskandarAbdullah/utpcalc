@@ -12,13 +12,20 @@ CORS(app)
 db.init_app(app)
 
 with app.app_context():
-    # Drop and recreate all tables to ensure schema is up to date
-    import sqlalchemy
-    try:
-        db.session.execute(sqlalchemy.text("SELECT is_admin, bio, dark_mode, target_cgpa FROM users LIMIT 1"))
-    except Exception:
-        db.drop_all()
+    # Ensure all tables exist
     db.create_all()
+    # Add missing columns to existing tables (for upgrades)
+    import sqlalchemy
+    with db.engine.connect() as conn:
+        try:
+            conn.execute(sqlalchemy.text("SELECT is_admin FROM users LIMIT 1"))
+        except Exception:
+            conn.execute(sqlalchemy.text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT 0"))
+            conn.execute(sqlalchemy.text("ALTER TABLE users ADD COLUMN bio VARCHAR(200) DEFAULT ''"))
+            conn.execute(sqlalchemy.text("ALTER TABLE users ADD COLUMN profile_pic TEXT"))
+            conn.execute(sqlalchemy.text("ALTER TABLE users ADD COLUMN dark_mode BOOLEAN DEFAULT 0"))
+            conn.execute(sqlalchemy.text("ALTER TABLE users ADD COLUMN target_cgpa FLOAT DEFAULT 3.5"))
+            conn.commit()
 
 
 # ============ AUTH HELPER ============
