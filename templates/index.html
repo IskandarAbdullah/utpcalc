@@ -8,70 +8,119 @@
     <title>UTP Mark Calculator</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --utp-blue: #003366;
+            --utp-blue-light: #004080;
             --utp-gold: #FFB81C;
-            --utp-light: #f8f9fa;
+            --utp-gold-light: #ffc94d;
+            --bg: #f0f2f5;
+            --card-shadow: 0 4px 20px rgba(0,0,0,0.06);
         }
-        body { background-color: var(--utp-light); font-family: 'Segoe UI', sans-serif; padding-bottom: 70px; }
-        .navbar { background: linear-gradient(135deg, var(--utp-blue), #004080); }
-        .navbar-brand { color: var(--utp-gold) !important; font-weight: 700; font-size: 1rem; }
-        .card { border: none; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
-        .card-header { border-radius: 12px 12px 0 0 !important; }
-        .btn-utp { background: var(--utp-blue); color: white; border: none; }
-        .btn-utp:hover { background: #004080; color: white; }
-        .btn-gold { background: var(--utp-gold); color: var(--utp-blue); border: none; font-weight: 600; }
-        .btn-gold:hover { background: #e6a519; color: var(--utp-blue); }
-        .grade-badge { font-size: 1.2rem; font-weight: 700; padding: 6px 12px; border-radius: 8px; }
-        .grade-a { background: #d4edda; color: #155724; }
-        .grade-b { background: #cce5ff; color: #004085; }
-        .grade-c { background: #fff3cd; color: #856404; }
-        .grade-d { background: #f8d7da; color: #721c24; }
-        .grade-f { background: #721c24; color: white; }
-        .gpa-display { font-size: 2.5rem; font-weight: 700; color: var(--utp-blue); }
-        .ai-chat-box { height: 350px; overflow-y: auto; background: #f0f4f8; border-radius: 8px; padding: 12px; }
-        .ai-message { background: white; border-radius: 12px; padding: 10px 14px; margin-bottom: 8px; font-size: 0.9rem; }
-        .user-message { background: var(--utp-blue); color: white; border-radius: 12px; padding: 10px 14px; margin-bottom: 8px; margin-left: 10%; font-size: 0.9rem; }
-        .progress-bar-carry { background: var(--utp-gold); }
-        .tab-content { padding-top: 15px; }
-        .assessment-row:hover { background: #f0f4f8; }
-        #loading { display: none; }
-        .spinner-border-sm { width: 1rem; height: 1rem; }
+        * { box-sizing: border-box; }
+        body { background: var(--bg); font-family: 'Inter', sans-serif; padding-bottom: 70px; margin: 0; }
+        
+        /* Navbar */
+        .navbar {
+            background: linear-gradient(135deg, var(--utp-blue) 0%, var(--utp-blue-light) 100%);
+            padding: 12px 0;
+            box-shadow: 0 4px 20px rgba(0,51,102,0.2);
+        }
+        .navbar-brand { color: var(--utp-gold) !important; font-weight: 700; font-size: 1.05rem; letter-spacing: -0.02em; }
+        .desktop-nav a { color: rgba(255,255,255,0.75) !important; text-decoration: none; font-size: 0.85rem; font-weight: 500; transition: color 0.2s; }
+        .desktop-nav a:hover { color: var(--utp-gold) !important; }
+        #user-greeting { font-size: 0.8rem; opacity: 0.8; }
+
+        /* Cards */
+        .card { border: none; border-radius: 16px; box-shadow: var(--card-shadow); overflow: hidden; transition: transform 0.2s, box-shadow 0.2s; }
+        .card:hover { box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
+        .card-header { border-radius: 0 !important; font-weight: 600; font-size: 0.85rem; letter-spacing: 0.02em; padding: 14px 18px; }
+        .card-body { padding: 18px; }
+
+        /* Buttons */
+        .btn-utp {
+            background: linear-gradient(135deg, var(--utp-blue), var(--utp-blue-light));
+            color: white; border: none; font-weight: 600; border-radius: 10px;
+            transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,51,102,0.2);
+        }
+        .btn-utp:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,51,102,0.3); color: white; }
+        .btn-gold {
+            background: linear-gradient(135deg, var(--utp-gold), var(--utp-gold-light));
+            color: var(--utp-blue); border: none; font-weight: 600; border-radius: 10px;
+            transition: all 0.2s; box-shadow: 0 2px 8px rgba(255,184,28,0.2);
+        }
+        .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(255,184,28,0.3); color: var(--utp-blue); }
+
+        /* Grade badges */
+        .grade-badge { font-size: 1.1rem; font-weight: 700; padding: 6px 14px; border-radius: 10px; letter-spacing: -0.02em; }
+        .grade-a { background: linear-gradient(135deg, #d4edda, #c3e6cb); color: #155724; }
+        .grade-b { background: linear-gradient(135deg, #cce5ff, #b8daff); color: #004085; }
+        .grade-c { background: linear-gradient(135deg, #fff3cd, #ffeaa7); color: #856404; }
+        .grade-d { background: linear-gradient(135deg, #f8d7da, #f5c6cb); color: #721c24; }
+        .grade-f { background: linear-gradient(135deg, #721c24, #a02030); color: white; }
+
+        /* GPA */
+        .gpa-display { font-size: 3rem; font-weight: 800; color: var(--utp-blue); letter-spacing: -0.03em; }
+
+        /* AI Chat */
+        .ai-chat-box { height: 350px; overflow-y: auto; background: linear-gradient(180deg, #f8f9fb, #f0f2f5); border-radius: 12px; padding: 14px; }
+        .ai-message { background: white; border-radius: 14px; padding: 12px 16px; margin-bottom: 10px; font-size: 0.88rem; box-shadow: 0 1px 4px rgba(0,0,0,0.04); line-height: 1.5; }
+        .user-message { background: linear-gradient(135deg, var(--utp-blue), var(--utp-blue-light)); color: white; border-radius: 14px; padding: 12px 16px; margin-bottom: 10px; margin-left: 15%; font-size: 0.88rem; box-shadow: 0 2px 8px rgba(0,51,102,0.15); }
+
+        /* Progress */
+        .progress { border-radius: 8px; height: 8px; background: #e9ecef; }
+        .progress-bar-carry { background: linear-gradient(90deg, var(--utp-gold), var(--utp-gold-light)); border-radius: 8px; }
+
+        /* Tabs */
+        .nav-tabs { border: none; background: white; border-radius: 12px; padding: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .nav-tabs .nav-link { border: none; border-radius: 10px; font-weight: 500; font-size: 0.85rem; color: #6b7280; padding: 10px 16px; transition: all 0.2s; }
+        .nav-tabs .nav-link.active { background: var(--utp-blue); color: white; box-shadow: 0 2px 8px rgba(0,51,102,0.2); }
+        .tab-content { padding-top: 20px; }
+
+        /* Tables */
+        .table { font-size: 0.82rem; border-collapse: separate; border-spacing: 0; }
+        .table th { background: #f8f9fa; font-weight: 600; color: #374151; border: none; padding: 10px 12px; }
+        .table td { border: none; padding: 8px 12px; vertical-align: middle; border-bottom: 1px solid #f0f0f0; }
+        .assessment-row:hover { background: #f8f9fb; }
+
+        /* Form controls */
+        .form-control, .form-select { border-radius: 10px; border: 2px solid #e5e7eb; font-size: 0.88rem; padding: 8px 12px; transition: all 0.2s; }
+        .form-control:focus, .form-select:focus { border-color: var(--utp-gold); box-shadow: 0 0 0 3px rgba(255,184,28,0.1); }
+        .form-control-sm, .form-select-sm { padding: 6px 10px; font-size: 0.82rem; }
+
+        /* Badges */
+        .badge { font-weight: 500; padding: 4px 10px; border-radius: 6px; font-size: 0.72rem; letter-spacing: 0.02em; }
+
+        /* Modal */
+        .modal-content { border-radius: 16px; border: none; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+        .modal-header { border-bottom: 1px solid #f0f0f0; padding: 18px 20px; }
+        .modal-body { padding: 20px; }
+        .modal-footer { border-top: 1px solid #f0f0f0; padding: 14px 20px; }
 
         /* Mobile bottom nav */
         .bottom-nav { display: none; }
         @media (max-width: 768px) {
             .desktop-nav { display: none !important; }
             .bottom-nav {
-                display: flex;
-                position: fixed;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                background: var(--utp-blue);
-                z-index: 9999;
-                justify-content: space-around;
-                padding: 8px 0;
-                box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+                display: flex; position: fixed; bottom: 0; left: 0; right: 0;
+                background: var(--utp-blue); z-index: 9999;
+                justify-content: space-around; padding: 8px 0;
+                box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
             }
-            .bottom-nav a {
-                color: rgba(255,255,255,0.7);
-                text-decoration: none;
-                text-align: center;
-                font-size: 0.7rem;
-                padding: 4px 8px;
-            }
+            .bottom-nav a { color: rgba(255,255,255,0.6); text-decoration: none; text-align: center; font-size: 0.65rem; padding: 4px 8px; transition: color 0.2s; }
             .bottom-nav a.active, .bottom-nav a:hover { color: var(--utp-gold); }
-            .bottom-nav i { display: block; font-size: 1.2rem; margin-bottom: 2px; }
-            .navbar-brand { font-size: 0.9rem; }
-            .container { padding-left: 10px; padding-right: 10px; }
-            .grade-badge { font-size: 1rem; padding: 4px 8px; }
-            .table { font-size: 0.8rem; }
-            .card-header { font-size: 0.85rem; padding: 8px 12px; }
-            .card-body { padding: 12px; }
-            .nav-tabs .nav-link { font-size: 0.8rem; padding: 8px 10px; }
+            .bottom-nav i { display: block; font-size: 1.1rem; margin-bottom: 2px; }
+            .container { padding-left: 12px; padding-right: 12px; }
+            .grade-badge { font-size: 0.9rem; padding: 4px 8px; }
+            .card-header { font-size: 0.8rem; padding: 10px 14px; }
+            .card-body { padding: 14px; }
+            .nav-tabs .nav-link { font-size: 0.78rem; padding: 8px 10px; }
         }
+
+        /* Animations */
+        .card { animation: fadeUp 0.4s ease; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
