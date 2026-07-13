@@ -511,6 +511,94 @@ def delete_event(event_id):
     return jsonify({'message': 'Event deleted'}), 200
 
 
+@app.route('/api/calendar/import-ics', methods=['POST'])
+@login_required
+def import_ics():
+    """Import events from .ics calendar file."""
+    user = get_current_user()
+
+    if 'ics' not in request.files:
+        return jsonify({'error': 'No .ics file uploaded'}), 400
+
+    ics_file = request.files['ics']
+    if not ics_file.filename.lower().endswith('.ics'):
+        return jsonify({'error': 'File must be .ics'}), 400
+
+    try:
+        content = ics_file.read().decode('utf-8')
+        from datetime import date as date_type, datetime as dt_type
+        import re as re_mod
+
+        events_added = 0
+        # Parse VEVENT blocks
+        vevent_pattern = r'BEGIN:VEVENT(.*?)END:VEVENT'
+        vevents = re_mod.findall(vevent_pattern, content, re_mod.DOTALL)
+
+        for vevent in vevents:
+            # Extract fields
+            summary_match = re_mod.search(r'SUMMARY:(.*?)(?:\r?\n)', vevent)
+            dtstart_match = re_mod.search(r'DTSTART[^:]*:(.*?)(?:\r?\n)', vevent)
+            description_match = re_mod.search(r'DESCRIPTION:(.*?)(?:\r?\n)', vevent)
+
+            if not summary_match or not dtstart_match:
+                continue
+
+            title = summary_match.group(1).strip()
+            dtstart_raw = dtstart_match.group(1).strip()
+            description = description_match.group(1).strip() if description_match else ''
+
+            # Parse date (handles YYYYMMDD and YYYYMMDDTHHmmss formats)
+            event_date = None
+            event_time = ''
+            try:
+                if 'T' in dtstart_raw:
+                    dt = dt_type.strptime(dtstart_raw[:15], '%Y%m%dT%H%M%S')
+                    event_date = dt.date()
+                    event_time = dt.strftime('%H:%M')
+                else:
+                    event_date = date_type(int(dtstart_raw[:4]), int(dtstart_raw[4:6]), int(dtstart_raw[6:8]))
+            except (ValueError, IndexError):
+                continue
+
+            # Determine event type from title
+            title_lower = title.lower()
+            event_type = 'other'
+            if 'test' in title_lower or 'exam' in title_lower:
+                event_type = 'test'
+            elif 'quiz' in title_lower:
+                event_type = 'quiz'
+            elif 'assignment' in title_lower or 'due' in title_lower:
+                event_type = 'assignment'
+            elif 'lab' in title_lower:
+                event_type = 'lab'
+            elif 'final' in title_lower:
+                event_type = 'exam'
+
+            # Extract course code if present
+            course_code = ''
+            code_match = re_mod.search(r'[A-Z]{2,3}\d{4}', title)
+            if code_match:
+                course_code = code_match.group(0)
+
+            event = CalendarEvent(
+                title=title,
+                description=description,
+                event_type=event_type,
+                course_code=course_code,
+                date=event_date,
+                time=event_time,
+                user_id=user.id
+            )
+            db.session.add(event)
+            events_added += 1
+
+        db.session.commit()
+        return jsonify({'message': f'{events_added} events imported from .ics file'})
+
+    except Exception as e:
+        return jsonify({'error': f'Error parsing .ics: {str(e)}'}), 500
+
+
 # ============ ADMIN ROUTES ============
 
 def admin_required(f):

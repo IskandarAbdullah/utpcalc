@@ -191,6 +191,13 @@
                             <i class="fas fa-file-pdf me-1"></i> Extract Events from PDF
                         </button>
                         <div id="ai-pdf-cal-result" class="mt-2" style="display:none;"></div>
+                        <hr>
+                        <small class="text-muted d-block mb-2">Or import .ics calendar file (from Moodle/Google Calendar):</small>
+                        <input type="file" id="cal-ics-file" class="form-control form-control-sm mb-2" accept=".ics">
+                        <button class="btn btn-gold btn-sm w-100" onclick="importICS()">
+                            <i class="fas fa-calendar-plus me-1"></i> Import .ics File
+                        </button>
+                        <div id="ics-result" class="mt-2" style="display:none;"></div>
                     </div>
                 </div>
             </div>
@@ -490,6 +497,38 @@
             aiPdfCalendarEvents = null;
             document.getElementById('cal-pdf-file').value = '';
             loadEvents();
+        }
+
+        // ============ ICS IMPORT ============
+        async function importICS() {
+            const fileInput = document.getElementById('cal-ics-file');
+            const resultDiv = document.getElementById('ics-result');
+
+            if (!fileInput.files[0]) return alert('Select an .ics file');
+
+            const formData = new FormData();
+            formData.append('ics', fileInput.files[0]);
+
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<small class="text-info"><i class="fas fa-spinner fa-spin"></i> Parsing .ics file...</small>';
+
+            try {
+                const res = await fetch('/api/calendar/import-ics', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    resultDiv.innerHTML = `<small class="text-success"><i class="fas fa-check me-1"></i>${data.message}</small>`;
+                    fileInput.value = '';
+                    loadEvents();
+                } else {
+                    resultDiv.innerHTML = `<small class="text-danger"><i class="fas fa-times me-1"></i>${data.error}</small>`;
+                }
+            } catch (e) {
+                resultDiv.innerHTML = '<small class="text-danger">Error importing .ics file.</small>';
+            }
         }
 
         // Init
