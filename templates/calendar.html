@@ -243,19 +243,29 @@
             const timetable = await ttRes.json();
             const dayMap = {monday:1, tuesday:2, wednesday:3, thursday:4, friday:5, saturday:6, sunday:0};
 
+            // Load attendance to show status on calendar
+            const attRes = await fetch('/api/attendance');
+            const attendance = await attRes.json();
+
             // Generate timetable events for current month
             const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
             for (let d = 1; d <= daysInMonth; d++) {
                 const date = new Date(currentYear, currentMonth, d);
                 const dayOfWeek = date.getDay();
+                const dateStr = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+
                 timetable.forEach(tt => {
                     if (dayMap[tt.day] === dayOfWeek) {
+                        // Check if attendance was marked for this class on this date
+                        const att = attendance.find(a => a.course_code === tt.course_code && a.date === dateStr);
+                        const attIcon = att ? (att.status === 'present' ? '✅' : att.status === 'late' ? '⚠️' : '❌') : '';
+
                         allEvents.push({
                             id: 'tt-' + tt.id + '-' + d,
-                            title: tt.course_code,
+                            title: `${attIcon}${tt.course_code}`,
                             event_type: tt.class_type === 'lab' ? 'lab' : 'other',
                             course_code: tt.course_code,
-                            date: `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`,
+                            date: dateStr,
                             time: tt.start_time,
                             description: `${tt.class_type} @ ${tt.venue || 'TBA'} (${tt.start_time}-${tt.end_time})`,
                             is_timetable: true
