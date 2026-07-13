@@ -1168,12 +1168,15 @@ def get_notes():
 @login_required
 def add_note():
     user = get_current_user()
+    import base64
 
     course_code = request.form.get('course_code', '').strip()
     title = request.form.get('title', '').strip()
     week_number = request.form.get('week_number', type=int)
     content = ''
     filename = ''
+    file_data = None
+    file_type = None
 
     if not course_code or not title:
         return jsonify({'error': 'course_code and title required'}), 400
@@ -1182,11 +1185,23 @@ def add_note():
     if 'file' in request.files and request.files['file'].filename:
         file = request.files['file']
         filename = file.filename
+        raw_bytes = file.read()
+        file.seek(0)
+
+        # Save original file as base64
+        file_data = base64.b64encode(raw_bytes).decode('utf-8')
+
         if file.filename.lower().endswith('.pdf'):
-            content = extract_pdf_text(file)
+            file_type = 'application/pdf'
+            from io import BytesIO
+            from PyPDF2 import PdfReader
+            reader = PdfReader(BytesIO(raw_bytes))
+            content = ""
+            for page in reader.pages:
+                content += page.extract_text() or ""
         elif file.content_type.startswith('image/'):
-            image_bytes = file.read()
-            result = ai_read_image(image_bytes, f"Read all text from this lecture note for {course_code}. Return all text content.")
+            file_type = file.content_type
+            result = ai_read_image(raw_bytes, f"Read all text from this lecture note for {course_code}. Return all text content.")
             content = result.get('raw_text', '') or result.get('summary', '')
     elif request.form.get('content'):
         content = request.form.get('content')
@@ -1198,6 +1213,8 @@ def add_note():
         course_code=course_code,
         title=title,
         content=content,
+        file_data=file_data,
+        file_type=file_type,
         filename=filename,
         week_number=week_number,
         user_id=user.id
@@ -1214,6 +1231,25 @@ def delete_note(note_id):
     db.session.delete(note)
     db.session.commit()
     return jsonify({'message': 'Note deleted'})
+
+
+@app.route('/api/notes/<int:note_id>/download', methods=['GET'])
+@login_required
+def download_note(note_id):
+    """Download the original file."""
+    import base64
+    from flask import Response
+
+    note = LectureNote.query.get_or_404(note_id)
+    if not note.file_data:
+        return jsonify({'error': 'No file stored for this note'}), 404
+
+    file_bytes = base64.b64decode(note.file_data)
+    return Response(
+        file_bytes,
+        mimetype=note.file_type or 'application/octet-stream',
+        headers={'Content-Disposition': f'inline; filename="{note.filename}"'}
+    )
 
 
 @app.route('/api/notes/generate-quiz', methods=['POST'])

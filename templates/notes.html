@@ -145,7 +145,10 @@
                             <span class="badge bg-primary ms-1" style="font-size:0.65rem;">${n.course_code}</span>
                             ${n.week_number ? `<span class="badge bg-secondary ms-1" style="font-size:0.65rem;">Week ${n.week_number}</span>` : ''}
                         </div>
-                        <button class="btn btn-sm p-0 text-danger" onclick="deleteNote(${n.id})"><i class="fas fa-times"></i></button>
+                        <div class="d-flex gap-1">
+                            ${n.has_file ? `<a href="/api/notes/${n.id}/download" target="_blank" class="btn btn-sm p-0 px-1 text-primary" title="View/Download"><i class="fas fa-download"></i></a>` : ''}
+                            <button class="btn btn-sm p-0 px-1 text-danger" onclick="deleteNote(${n.id})"><i class="fas fa-times"></i></button>
+                        </div>
                     </div>
                     <div class="note-content mt-1">${n.content.substring(0, 200)}...</div>
                     ${n.filename ? `<small class="text-muted"><i class="fas fa-file me-1"></i>${n.filename}</small>` : ''}
