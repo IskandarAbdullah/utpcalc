@@ -13,7 +13,7 @@ class Config:
 
     # Google Gemini API (using official SDK)
     GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
-    GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-3.5-flash')
+    GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-2.0-flash')
 
     # Fallback to Ollama if no Gemini key (for local dev)
     OLLAMA_MODEL = os.environ.get('OLLAMA_MODEL', 'llama3.1')
