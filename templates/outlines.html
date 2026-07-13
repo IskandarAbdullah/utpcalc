@@ -62,8 +62,9 @@
                             </select>
                         </div>
                         <div class="mb-2">
-                            <label class="form-label small fw-bold">PDF File</label>
-                            <input type="file" id="outline-pdf" class="form-control form-control-sm" accept=".pdf">
+                            <label class="form-label small fw-bold">Upload File (PDF or Image)</label>
+                            <input type="file" id="outline-pdf" class="form-control form-control-sm" accept=".pdf,image/*">
+                            <small class="text-muted">Supports PDF and images (JPG, PNG) of course outlines</small>
                         </div>
                         <button class="btn btn-utp btn-sm w-100" onclick="uploadOutline()">
                             <i class="fas fa-upload me-1"></i> Save Outline
@@ -192,13 +193,24 @@
             const statusDiv = document.getElementById('upload-status');
 
             if (!courseSelect.value) return alert('Select a course');
-            if (!fileInput.files[0]) return alert('Select a PDF file');
+            if (!fileInput.files[0]) return alert('Select a file');
+
+            const file = fileInput.files[0];
+            const isImage = file.type.startsWith('image/');
+            const isPDF = file.name.toLowerCase().endsWith('.pdf');
+
+            if (!isImage && !isPDF) return alert('Please upload a PDF or image file');
 
             const courseData = JSON.parse(courseSelect.value);
             const formData = new FormData();
-            formData.append('pdf', fileInput.files[0]);
             formData.append('course_code', courseData.code);
             formData.append('course_name', courseData.name);
+
+            if (isImage) {
+                formData.append('image', file);
+            } else {
+                formData.append('pdf', file);
+            }
 
             statusDiv.style.display = 'block';
             statusDiv.innerHTML = '<small class="text-info"><i class="fas fa-spinner fa-spin"></i> Uploading and processing...</small>';

@@ -1105,23 +1105,39 @@ def get_outlines():
 def upload_outline():
     user = get_current_user()
 
-    if 'pdf' not in request.files:
-        return jsonify({'error': 'No PDF file uploaded'}), 400
-
-    pdf_file = request.files['pdf']
-    if not pdf_file.filename.lower().endswith('.pdf'):
-        return jsonify({'error': 'File must be a PDF'}), 400
-
     course_code = request.form.get('course_code', '').strip()
     course_name = request.form.get('course_name', '').strip()
 
     if not course_code or not course_name:
         return jsonify({'error': 'course_code and course_name are required'}), 400
 
+    extracted_text = ''
+    filename = ''
+
     try:
-        pdf_text = extract_pdf_text(pdf_file)
-        if not pdf_text.strip():
-            return jsonify({'error': 'Could not extract text from PDF. It may be image-based.'}), 400
+        if 'image' in request.files:
+            # Handle image upload — use AI vision to read it
+            image_file = request.files['image']
+            filename = image_file.filename
+            image_bytes = image_file.read()
+
+            result = ai_read_image(image_bytes, f"Read and extract all text content from this course outline image for {course_code} ({course_name}). Return all the text you can see.")
+            if result.get('success'):
+                extracted_text = result.get('raw_text', '') or result.get('summary', '')
+            if not extracted_text:
+                return jsonify({'error': 'Could not read text from image. Try a clearer photo.'}), 400
+
+        elif 'pdf' in request.files:
+            # Handle PDF upload
+            pdf_file = request.files['pdf']
+            if not pdf_file.filename.lower().endswith('.pdf'):
+                return jsonify({'error': 'File must be a PDF'}), 400
+            filename = pdf_file.filename
+            extracted_text = extract_pdf_text(pdf_file)
+            if not extracted_text.strip():
+                return jsonify({'error': 'Could not extract text from PDF. It may be image-based.'}), 400
+        else:
+            return jsonify({'error': 'No file uploaded'}), 400
 
         # Delete existing outline for this course (replace)
         CourseOutline.query.filter_by(user_id=user.id, course_code=course_code).delete()
@@ -1129,8 +1145,8 @@ def upload_outline():
         outline = CourseOutline(
             course_code=course_code,
             course_name=course_name,
-            filename=pdf_file.filename,
-            pdf_text=pdf_text,
+            filename=filename,
+            pdf_text=extracted_text,
             user_id=user.id
         )
         db.session.add(outline)
@@ -1138,7 +1154,7 @@ def upload_outline():
 
         return jsonify({'message': f'Outline saved for {course_code}', 'outline': outline.to_dict()}), 201
     except Exception as e:
-        return jsonify({'error': f'Error processing PDF: {str(e)}'}), 500
+        return jsonify({'error': f'Error processing file: {str(e)}'}), 500
 
 
 @app.route('/api/outlines/<int:outline_id>', methods=['DELETE'])

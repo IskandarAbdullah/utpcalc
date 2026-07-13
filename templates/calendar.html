@@ -96,6 +96,17 @@
                         <div class="calendar-grid" id="calendar-days"></div>
                     </div>
                 </div>
+
+                <!-- Attendance Tracker (linked to timetable) -->
+                <div class="card mt-3">
+                    <div class="card-header bg-dark text-white">
+                        <i class="fas fa-clipboard-check me-1"></i> Mark Attendance
+                    </div>
+                    <div class="card-body">
+                        <div id="today-classes"></div>
+                        <div id="attendance-summary" class="mt-2"></div>
+                    </div>
+                </div>
             </div>
 
             <!-- Sidebar -->
@@ -140,7 +151,7 @@
 
                 <div class="card">
                     <div class="card-header bg-dark text-white">
-                        <i class="fas fa-list me-1"></i> Upcoming Events
+                        <i class="fas fa-clock me-1"></i> Today's Schedule
                     </div>
                     <div class="card-body" id="upcoming-events">
                         <p class="text-muted text-center">No events yet</p>
@@ -303,20 +314,20 @@
         function renderUpcoming() {
             const container = document.getElementById('upcoming-events');
             const today = new Date().toISOString().split('T')[0];
-            const upcoming = allEvents.filter(e => e.date >= today).sort((a,b) => a.date.localeCompare(b.date));
+            const todayEvents = allEvents.filter(e => e.date === today).sort((a,b) => (a.time||'').localeCompare(b.time||''));
 
-            if (upcoming.length === 0) {
-                container.innerHTML = '<p class="text-muted text-center small">No upcoming events this month</p>';
+            if (todayEvents.length === 0) {
+                container.innerHTML = '<p class="text-muted text-center small">No events today</p>';
                 return;
             }
 
-            container.innerHTML = upcoming.map(e => `
-                <div class="event-list-item" style="border-left-color: var(--event-color-${e.event_type})">
+            container.innerHTML = todayEvents.map(e => `
+                <div class="event-list-item" style="border-left-color: ${e.is_timetable ? '#0891b2' : '#FFB81C'}">
                     <div class="d-flex justify-content-between">
                         <strong class="small">${e.title}</strong>
-                        <button class="btn btn-sm p-0 text-danger" onclick="deleteEvent(${e.id})"><i class="fas fa-times"></i></button>
+                        ${!e.is_timetable ? `<button class="btn btn-sm p-0 text-danger" onclick="deleteEvent(${e.id})"><i class="fas fa-times"></i></button>` : ''}
                     </div>
-                    <small class="text-muted">${e.date} ${e.time || ''} ${e.course_code ? '| ' + e.course_code : ''}</small>
+                    <small class="text-muted">${e.time || ''} ${e.course_code ? '| ' + e.course_code : ''} ${e.is_timetable ? '(class)' : ''}</small>
                 </div>
             `).join('');
         }
@@ -541,9 +552,70 @@
             }
         }
 
+        // ============ ATTENDANCE (linked to timetable) ============
+        async function loadTodayClasses() {
+            const ttRes = await fetch('/api/timetable');
+            const timetable = await ttRes.json();
+            const dayNames = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+            const today = dayNames[new Date().getDay()];
+            const todayDate = new Date().toISOString().split('T')[0];
+
+            const todayClasses = timetable.filter(t => t.day === today).sort((a,b) => a.start_time.localeCompare(b.start_time));
+            const container = document.getElementById('today-classes');
+
+            if (todayClasses.length === 0) {
+                container.innerHTML = '<small class="text-muted">No classes today</small>';
+            } else {
+                // Get existing attendance for today
+                const attRes = await fetch('/api/attendance');
+                const attendance = await attRes.json();
+                const todayAtt = attendance.filter(a => a.date === todayDate);
+
+                container.innerHTML = todayClasses.map(c => {
+                    const marked = todayAtt.find(a => a.course_code === c.course_code);
+                    const statusIcon = marked ? (marked.status === 'present' ? '✅' : marked.status === 'late' ? '⚠️' : '❌') : '⬜';
+                    return `
+                        <div class="d-flex justify-content-between align-items-center mb-2 p-2" style="background:#f8f9fb;border-radius:8px;">
+                            <div>
+                                <strong class="small">${c.course_code}</strong>
+                                <small class="text-muted d-block">${c.start_time}-${c.end_time} ${c.venue ? '@ '+c.venue : ''}</small>
+                            </div>
+                            <div class="d-flex gap-1">
+                                ${!marked ? `
+                                    <button class="btn btn-sm btn-outline-success py-0 px-1" onclick="markAtt('${c.course_code}','present')">✅</button>
+                                    <button class="btn btn-sm btn-outline-warning py-0 px-1" onclick="markAtt('${c.course_code}','late')">⚠️</button>
+                                    <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="markAtt('${c.course_code}','absent')">❌</button>
+                                ` : `<span>${statusIcon}</span>`}
+                            </div>
+                        </div>`;
+                }).join('');
+            }
+
+            // Load summary
+            const sumRes = await fetch('/api/attendance/summary');
+            const summary = await sumRes.json();
+            const sumContainer = document.getElementById('attendance-summary');
+            const keys = Object.keys(summary);
+            if (keys.length > 0) {
+                sumContainer.innerHTML = '<hr><small class="fw-bold">Attendance %:</small>' +
+                    keys.map(k => `<div class="d-flex justify-content-between"><small>${k}</small><small class="${summary[k].percentage >= 80 ? 'text-success' : 'text-danger'}">${summary[k].percentage}%</small></div>`).join('');
+            }
+        }
+
+        async function markAtt(courseCode, status) {
+            const today = new Date().toISOString().split('T')[0];
+            await fetch('/api/attendance', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({course_code: courseCode, date: today, status})
+            });
+            loadTodayClasses();
+        }
+
         // Init
         loadCourses();
         loadEvents();
+        loadTodayClasses();
     </script>
 </body>
 </html>
