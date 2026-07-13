@@ -12,6 +12,14 @@ CORS(app)
 db.init_app(app)
 
 with app.app_context():
+    # Drop and recreate all tables to ensure schema is up to date
+    # Remove this after first successful deploy
+    import sqlalchemy
+    try:
+        db.session.execute(sqlalchemy.text("SELECT is_admin FROM users LIMIT 1"))
+    except Exception:
+        # Column missing - need to recreate tables
+        db.drop_all()
     db.create_all()
 
 
