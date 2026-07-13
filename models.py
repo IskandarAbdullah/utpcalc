@@ -104,27 +104,21 @@ class Course(db.Model):
     def grade(self):
         """Determine grade based on total mark (UTP grading scale)."""
         total = self.total_mark
-        if total >= 90:
-            return 'A+'
-        elif total >= 80:
+        if total >= 85:
             return 'A'
-        elif total >= 75:
+        elif total >= 80:
             return 'A-'
-        elif total >= 70:
+        elif total >= 75:
             return 'B+'
         elif total >= 65:
             return 'B'
-        elif total >= 60:
-            return 'B-'
         elif total >= 55:
             return 'C+'
         elif total >= 50:
             return 'C'
         elif total >= 45:
-            return 'C-'
-        elif total >= 40:
             return 'D+'
-        elif total >= 35:
+        elif total >= 40:
             return 'D'
         else:
             return 'F'
@@ -133,10 +127,10 @@ class Course(db.Model):
     def grade_point(self):
         """Get grade point value (UTP 4.0 scale)."""
         grade_map = {
-            'A+': 4.00, 'A': 4.00, 'A-': 3.67,
-            'B+': 3.33, 'B': 3.00, 'B-': 2.67,
-            'C+': 2.33, 'C': 2.00, 'C-': 1.67,
-            'D+': 1.33, 'D': 1.00, 'F': 0.00
+            'A': 4.00, 'A-': 3.75,
+            'B+': 3.50, 'B': 3.00,
+            'C+': 2.50, 'C': 2.00,
+            'D+': 1.50, 'D': 1.00, 'F': 0.00
         }
         return grade_map.get(self.grade, 0.00)
 

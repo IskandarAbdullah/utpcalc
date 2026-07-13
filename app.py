@@ -658,6 +658,25 @@ def admin_stats():
     })
 
 
+@app.route('/api/admin/grading', methods=['GET'])
+@admin_required
+def get_grading():
+    """Get current grading scale."""
+    return jsonify({
+        'scale': [
+            {'min': 85, 'max': 100, 'grade': 'A', 'point': 4.00},
+            {'min': 80, 'max': 84.9, 'grade': 'A-', 'point': 3.75},
+            {'min': 75, 'max': 79.9, 'grade': 'B+', 'point': 3.50},
+            {'min': 65, 'max': 74.9, 'grade': 'B', 'point': 3.00},
+            {'min': 55, 'max': 64.9, 'grade': 'C+', 'point': 2.50},
+            {'min': 50, 'max': 54.9, 'grade': 'C', 'point': 2.00},
+            {'min': 45, 'max': 49.9, 'grade': 'D+', 'point': 1.50},
+            {'min': 40, 'max': 44.9, 'grade': 'D', 'point': 1.00},
+            {'min': 0, 'max': 39.9, 'grade': 'F', 'point': 0.00},
+        ]
+    })
+
+
 # ============ FEED/POSTS ROUTES ============
 
 @app.route('/api/posts', methods=['GET'])
