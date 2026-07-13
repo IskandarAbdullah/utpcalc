@@ -66,28 +66,8 @@
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-dark mb-3">
-        <div class="container">
-            <a class="navbar-brand" href="/">
-                <i class="fas fa-graduation-cap me-1"></i>UTP Marks
-            </a>
-            <div class="navbar-nav ms-auto d-flex flex-row gap-3 desktop-nav">
-                <a class="nav-link" href="/">Marks</a>
-                <a class="nav-link active" href="/calendar">Calendar</a>
-                <a class="nav-link" href="/timetable">Timetable</a>
-                <a class="nav-link" href="/feed">Feed</a>
-                <a class="nav-link" href="/profile">Profile</a>
-            </div>
-        </div>
-    </nav>
-    <!-- Mobile Bottom Nav -->
-    <div class="bottom-nav">
-        <a href="/"><i class="fas fa-calculator"></i>Marks</a>
-        <a href="/calendar" class="active"><i class="fas fa-calendar"></i>Calendar</a>
-        <a href="/timetable"><i class="fas fa-clock"></i>Timetable</a>
-        <a href="/feed"><i class="fas fa-images"></i>Feed</a>
-        <a href="/profile"><i class="fas fa-user"></i>Profile</a>
-    </div>
+    {% set page = 'calendar' %}
+    {% include 'nav.html' %}
     <div class="container">
         <div class="row">
             <!-- Calendar -->

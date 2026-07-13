@@ -1,0 +1,203 @@
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+    --utp-blue: #003366;
+    --utp-blue-light: #004080;
+    --utp-gold: #FFB81C;
+    --nav-height: 64px;
+    --bottom-nav-height: 64px;
+}
+
+/* ===== Desktop Top Navbar ===== */
+.desktop-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--nav-height);
+    background: linear-gradient(135deg, var(--utp-blue) 0%, var(--utp-blue-light) 100%);
+    padding: 0 2rem;
+    z-index: 1000;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+    font-family: 'Inter', sans-serif;
+}
+
+.desktop-nav .nav-logo {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #ffffff;
+    text-decoration: none;
+    letter-spacing: -0.5px;
+}
+
+.desktop-nav .nav-logo span {
+    color: var(--utp-gold);
+}
+
+.desktop-nav .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.desktop-nav .nav-links a {
+    color: rgba(255, 255, 255, 0.75);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.desktop-nav .nav-links a:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.desktop-nav .nav-links a.active {
+    color: var(--utp-gold);
+    background: rgba(255, 184, 28, 0.1);
+}
+
+/* ===== Mobile Bottom Navbar ===== */
+.mobile-nav {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: var(--bottom-nav-height);
+    background: linear-gradient(135deg, var(--utp-blue) 0%, var(--utp-blue-light) 100%);
+    z-index: 1000;
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.15);
+    font-family: 'Inter', sans-serif;
+}
+
+.mobile-nav .nav-items {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    height: 100%;
+    padding: 0 0.5rem;
+}
+
+.mobile-nav .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: rgba(255, 255, 255, 0.6);
+    gap: 3px;
+    padding: 6px 12px;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+    min-width: 48px;
+}
+
+.mobile-nav .nav-item:hover {
+    color: #ffffff;
+}
+
+.mobile-nav .nav-item.active {
+    color: var(--utp-gold);
+}
+
+.mobile-nav .nav-item .nav-icon {
+    width: 22px;
+    height: 22px;
+}
+
+.mobile-nav .nav-item .nav-label {
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+    .desktop-nav {
+        display: none;
+    }
+
+    .mobile-nav {
+        display: block;
+    }
+
+    body {
+        padding-bottom: var(--bottom-nav-height);
+    }
+}
+
+@media (min-width: 769px) {
+    body {
+        padding-top: var(--nav-height);
+    }
+}
+</style>
+
+<!-- Desktop Top Navbar -->
+<nav class="desktop-nav">
+    <a href="/" class="nav-logo">UTP <span>Marks</span></a>
+    <div class="nav-links">
+        <a href="/" class="{{ 'active' if page == 'marks' else '' }}">Marks</a>
+        <a href="/calendar" class="{{ 'active' if page == 'calendar' else '' }}">Calendar</a>
+        <a href="/timetable" class="{{ 'active' if page == 'timetable' else '' }}">Timetable</a>
+        <a href="/feed" class="{{ 'active' if page == 'feed' else '' }}">Feed</a>
+        <a href="/profile" class="{{ 'active' if page == 'profile' else '' }}">Profile</a>
+    </div>
+</nav>
+
+<!-- Mobile Bottom Navbar -->
+<nav class="mobile-nav">
+    <div class="nav-items">
+        <a href="/" class="nav-item {{ 'active' if page == 'marks' else '' }}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="2" width="16" height="20" rx="2"/>
+                <line x1="8" y1="6" x2="16" y2="6"/>
+                <line x1="8" y1="10" x2="16" y2="10"/>
+                <line x1="8" y1="14" x2="12" y2="14"/>
+                <line x1="8" y1="18" x2="10" y2="18"/>
+            </svg>
+            <span class="nav-label">Marks</span>
+        </a>
+        <a href="/calendar" class="nav-item {{ 'active' if page == 'calendar' else '' }}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+                <rect x="8" y="14" width="2" height="2"/>
+                <rect x="14" y="14" width="2" height="2"/>
+            </svg>
+            <span class="nav-label">Calendar</span>
+        </a>
+        <a href="/timetable" class="nav-item {{ 'active' if page == 'timetable' else '' }}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12,6 12,12 16,14"/>
+            </svg>
+            <span class="nav-label">Timetable</span>
+        </a>
+        <a href="/feed" class="nav-item {{ 'active' if page == 'feed' else '' }}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21,15 16,10 5,21"/>
+            </svg>
+            <span class="nav-label">Feed</span>
+        </a>
+        <a href="/profile" class="nav-item {{ 'active' if page == 'profile' else '' }}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+            </svg>
+            <span class="nav-label">Profile</span>
+        </a>
+    </div>
+</nav>
