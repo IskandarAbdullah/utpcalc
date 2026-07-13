@@ -155,7 +155,7 @@ def register():
 
     semester = Semester(
         name=sem_name,
-        year=2025,
+        year=2026,
         user_id=user.id
     )
     db.session.add(semester)
