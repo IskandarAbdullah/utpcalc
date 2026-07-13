@@ -211,7 +211,7 @@
     </script>
 
     <!-- PWA Install Button -->
-    <div id="install-banner" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:9999;">
+    <div id="install-banner" style="position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:9999;">
         <button id="install-btn" class="btn btn-gold btn-lg shadow-lg" style="border-radius:50px; padding:12px 30px;">
             <i class="fas fa-download me-2"></i> Install App
         </button>
@@ -225,24 +225,31 @@
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            installBanner.style.display = 'block';
         });
 
         installBtn.addEventListener('click', async () => {
-            if (!deferredPrompt) return;
-            deferredPrompt.prompt();
-            const result = await deferredPrompt.userChoice;
-            if (result.outcome === 'accepted') {
-                installBanner.style.display = 'none';
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const result = await deferredPrompt.userChoice;
+                if (result.outcome === 'accepted') {
+                    installBanner.style.display = 'none';
+                }
+                deferredPrompt = null;
+            } else {
+                // Fallback: show instructions
+                alert('To install:\\n\\nAndroid Chrome: Tap ⋮ menu → "Add to Home Screen"\\n\\niPhone Safari: Tap Share → "Add to Home Screen"');
             }
-            deferredPrompt = null;
         });
 
         window.addEventListener('appinstalled', () => {
             installBanner.style.display = 'none';
         });
 
-        // Register service worker
+        // Hide if already installed as PWA
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            installBanner.style.display = 'none';
+        }
+
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/static/sw.js');
         }
