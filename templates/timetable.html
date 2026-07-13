@@ -43,10 +43,23 @@
         <!-- ICS Import -->
         <div class="card p-3 mb-3">
             <h6 class="mb-2"><i class="fas fa-file-import me-1"></i>Import from .ics File</h6>
-            <small class="text-muted d-block mb-2">Upload your timetable .ics file (from UTP portal / Moodle) to auto-populate your schedule.</small>
+            <small class="text-muted d-block mb-2">Upload your semester timetable .ics file. Choose how to import:</small>
             <div class="row g-2">
                 <div class="col"><input type="file" id="tt-ics" class="form-control form-control-sm" accept=".ics"></div>
-                <div class="col-auto"><button class="btn btn-utp btn-sm" onclick="importICS()"><i class="fas fa-upload me-1"></i>Import</button></div>
+            </div>
+            <div class="row g-2 mt-2">
+                <div class="col">
+                    <button class="btn btn-utp btn-sm w-100" onclick="importICS('timetable')">
+                        <i class="fas fa-redo me-1"></i> As Weekly Schedule
+                    </button>
+                    <small class="text-muted d-block text-center mt-1">Repeats every week</small>
+                </div>
+                <div class="col">
+                    <button class="btn btn-gold btn-sm w-100" onclick="importICS('calendar')">
+                        <i class="fas fa-calendar-plus me-1"></i> As Semester Events
+                    </button>
+                    <small class="text-muted d-block text-center mt-1">Individual dates (4 months)</small>
+                </div>
             </div>
             <div id="ics-result" class="mt-2" style="display:none;"></div>
         </div>
@@ -95,7 +108,7 @@
         }
         async function deleteEntry(id){await fetch(`/api/timetable/${id}`,{method:'DELETE'});loadTimetable();}
 
-        async function importICS() {
+        async function importICS(mode) {
             const fileInput = document.getElementById('tt-ics');
             const resultDiv = document.getElementById('ics-result');
             if (!fileInput.files[0]) return alert('Select an .ics file');
@@ -107,12 +120,13 @@
             resultDiv.innerHTML = '<small class="text-info"><i class="fas fa-spinner fa-spin"></i> Importing...</small>';
 
             try {
-                const res = await fetch('/api/timetable/import-ics', { method: 'POST', body: formData });
+                const url = mode === 'calendar' ? '/api/calendar/import-ics' : '/api/timetable/import-ics';
+                const res = await fetch(url, { method: 'POST', body: formData });
                 const data = await res.json();
                 if (res.ok) {
                     resultDiv.innerHTML = `<small class="text-success"><i class="fas fa-check me-1"></i>${data.message}</small>`;
                     fileInput.value = '';
-                    loadTimetable();
+                    if (mode === 'timetable') loadTimetable();
                 } else {
                     resultDiv.innerHTML = `<small class="text-danger"><i class="fas fa-times me-1"></i>${data.error}</small>`;
                 }
