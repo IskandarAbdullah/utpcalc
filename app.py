@@ -884,6 +884,26 @@ def attendance_summary():
     return jsonify(summary)
 
 
+@app.route('/api/attendance/<int:att_id>', methods=['PUT'])
+@login_required
+def update_attendance(att_id):
+    record = Attendance.query.get_or_404(att_id)
+    data = request.get_json()
+    if 'status' in data:
+        record.status = data['status']
+    db.session.commit()
+    return jsonify(record.to_dict())
+
+
+@app.route('/api/attendance/<int:att_id>', methods=['DELETE'])
+@login_required
+def delete_attendance(att_id):
+    record = Attendance.query.get_or_404(att_id)
+    db.session.delete(record)
+    db.session.commit()
+    return jsonify({'message': 'Deleted'})
+
+
 # ============ TIMETABLE ROUTES ============
 
 @app.route('/api/timetable', methods=['GET'])
