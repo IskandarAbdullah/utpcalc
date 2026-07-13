@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UTP Marks - Profile</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root{--utp-blue:#003366;--utp-gold:#FFB81C;--bg:#f0f2f5}
+        body{background:var(--bg);font-family:'Inter',sans-serif;padding-bottom:20px}
+        .navbar{background:linear-gradient(135deg,var(--utp-blue),#004080);padding:12px 0;box-shadow:0 4px 20px rgba(0,51,102,0.2)}
+        .navbar-brand{color:var(--utp-gold)!important;font-weight:700}
+        .nav-link{color:rgba(255,255,255,0.7)!important;font-size:0.85rem}.nav-link:hover,.nav-link.active{color:var(--utp-gold)!important}
+        .card{border:none;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.06)}
+        .profile-avatar{width:100px;height:100px;border-radius:50%;background:linear-gradient(135deg,var(--utp-blue),#004080);display:flex;align-items:center;justify-content:center;color:white;font-size:2.5rem;font-weight:700;margin:0 auto 16px}
+        .cgpa-big{font-size:3.5rem;font-weight:800;color:var(--utp-blue)}
+        .stat-item{text-align:center;padding:16px}
+        .stat-num{font-size:1.5rem;font-weight:700;color:var(--utp-blue)}
+        .stat-lbl{font-size:0.75rem;color:#6b7280}
+        .form-control,.form-select{border-radius:10px;border:2px solid #e5e7eb;transition:all 0.2s}
+        .form-control:focus,.form-select:focus{border-color:var(--utp-gold);box-shadow:0 0 0 3px rgba(255,184,28,0.1)}
+        .btn-utp{background:linear-gradient(135deg,var(--utp-blue),#004080);color:white;border:none;border-radius:10px;font-weight:600}
+        .btn-utp:hover{color:white;transform:translateY(-1px)}
+        .progress{height:10px;border-radius:8px}.progress-bar{background:linear-gradient(90deg,var(--utp-gold),#ffc94d);border-radius:8px}
+        .leaderboard-item{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid #f0f0f0;gap:12px}
+        .rank-badge{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.8rem}
+        .rank-1{background:#ffd700;color:#333}.rank-2{background:#c0c0c0;color:#333}.rank-3{background:#cd7f32;color:white}.rank-other{background:#e5e7eb;color:#6b7280}
+        .me-highlight{background:#eff6ff;border-radius:8px;padding:10px!important}
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark mb-3">
+        <div class="container">
+            <a class="navbar-brand" href="/"><i class="fas fa-graduation-cap me-1"></i>UTP Marks</a>
+            <div class="d-flex gap-3">
+                <a class="nav-link" href="/">Marks</a>
+                <a class="nav-link" href="/calendar">Calendar</a>
+                <a class="nav-link" href="/feed">Feed</a>
+                <a class="nav-link active" href="/profile">Profile</a>
+            </div>
+        </div>
+    </nav>
+    <div class="container" style="max-width:800px;">
+        <div class="row">
+            <div class="col-md-5 mb-3">
+                <div class="card p-4 text-center">
+                    <div class="profile-avatar" id="avatar">?</div>
+                    <h5 id="profile-name">Loading...</h5>
+                    <small class="text-muted" id="profile-info"></small>
+                    <p class="mt-2 small" id="profile-bio"></p>
+                    <hr>
+                    <div class="row">
+                        <div class="stat-item col-4"><div class="stat-num" id="stat-cgpa">-</div><div class="stat-lbl">CGPA</div></div>
+                        <div class="stat-item col-4"><div class="stat-num" id="stat-sems">-</div><div class="stat-lbl">Semesters</div></div>
+                        <div class="stat-item col-4"><div class="stat-num" id="stat-creds">-</div><div class="stat-lbl">Credits</div></div>
+                    </div>
+                    <hr>
+                    <h6>Target CGPA Progress</h6>
+                    <div class="cgpa-big" id="cgpa-display">0.00</div>
+                    <div class="progress mt-2"><div class="progress-bar" id="cgpa-progress"></div></div>
+                    <small class="text-muted mt-1" id="cgpa-target-text"></small>
+                </div>
+
+                <!-- Leaderboard -->
+                <div class="card mt-3 p-3">
+                    <h6><i class="fas fa-trophy me-1 text-warning"></i>Leaderboard</h6>
+                    <div id="leaderboard"></div>
+                </div>
+            </div>
+            <div class="col-md-7 mb-3">
+                <!-- Edit Profile -->
+                <div class="card p-4 mb-3">
+                    <h6><i class="fas fa-edit me-1"></i>Edit Profile</h6>
+                    <div class="mb-2"><label class="form-label small">Full Name</label><input type="text" id="edit-name" class="form-control form-control-sm"></div>
+                    <div class="mb-2"><label class="form-label small">Bio</label><textarea id="edit-bio" class="form-control form-control-sm" rows="2" maxlength="200"></textarea></div>
+                    <div class="mb-2"><label class="form-label small">Target CGPA</label><input type="number" id="edit-target" class="form-control form-control-sm" step="0.1" min="0" max="4"></div>
+                    <div class="mb-2 form-check"><input type="checkbox" id="edit-darkmode" class="form-check-input"><label class="form-check-label small">Dark Mode</label></div>
+                    <button class="btn btn-utp btn-sm" onclick="saveProfile()"><i class="fas fa-save me-1"></i>Save</button>
+                </div>
+                <!-- Target GPA Calculator -->
+                <div class="card p-4 mb-3">
+                    <h6><i class="fas fa-bullseye me-1"></i>Target GPA Calculator</h6>
+                    <p class="small text-muted">What GPA do I need this semester to reach my target CGPA?</p>
+                    <div class="row g-2 mb-2">
+                        <div class="col"><input type="number" id="calc-target" class="form-control form-control-sm" placeholder="Target CGPA" step="0.1" value="3.5"></div>
+                        <div class="col"><input type="number" id="calc-credits" class="form-control form-control-sm" placeholder="Next sem credits" value="15"></div>
+                        <div class="col-auto"><button class="btn btn-utp btn-sm" onclick="calcTarget()">Calculate</button></div>
+                    </div>
+                    <div id="calc-result"></div>
+                </div>
+                <!-- Attendance Summary -->
+                <div class="card p-4">
+                    <h6><i class="fas fa-clipboard-check me-1"></i>Attendance Summary</h6>
+                    <div id="attendance-summary"><small class="text-muted">No attendance records yet</small></div>
+                    <hr>
+                    <div class="row g-2">
+                        <div class="col"><select id="att-course" class="form-select form-select-sm"><option value="">Course</option></select></div>
+                        <div class="col"><input type="date" id="att-date" class="form-control form-control-sm"></div>
+                        <div class="col"><select id="att-status" class="form-select form-select-sm"><option value="present">Present</option><option value="absent">Absent</option><option value="late">Late</option></select></div>
+                        <div class="col-auto"><button class="btn btn-utp btn-sm" onclick="addAttendance()">+</button></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        async function loadProfile(){
+            const r=await fetch('/api/profile');const u=await r.json();
+            document.getElementById('avatar').textContent=u.full_name.charAt(0);
+            document.getElementById('profile-name').textContent=u.full_name;
+            document.getElementById('profile-info').textContent=`@${u.username} · ${u.program_id.toUpperCase()} · Sem ${u.current_semester}`;
+            document.getElementById('profile-bio').textContent=u.bio||'No bio yet';
+            document.getElementById('edit-name').value=u.full_name;
+            document.getElementById('edit-bio').value=u.bio||'';
+            document.getElementById('edit-target').value=u.target_cgpa||3.5;
+            document.getElementById('edit-darkmode').checked=u.dark_mode;
+        }
+        async function loadCGPA(){
+            const r=await fetch('/api/cgpa');const d=await r.json();
+            document.getElementById('cgpa-display').textContent=d.cgpa.toFixed(2);
+            document.getElementById('stat-cgpa').textContent=d.cgpa.toFixed(2);
+            document.getElementById('stat-sems').textContent=d.semesters.length;
+            document.getElementById('stat-creds').textContent=d.total_credits;
+            const pct=Math.min((d.cgpa/4)*100,100);
+            document.getElementById('cgpa-progress').style.width=pct+'%';
+            document.getElementById('cgpa-target-text').textContent=`Target: ${d.target_cgpa} | Current: ${d.cgpa.toFixed(2)}`;
+        }
+        async function saveProfile(){
+            await fetch('/api/profile',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({full_name:document.getElementById('edit-name').value,bio:document.getElementById('edit-bio').value,target_cgpa:document.getElementById('edit-target').value,dark_mode:document.getElementById('edit-darkmode').checked})});
+            loadProfile();loadCGPA();alert('Saved!');
+        }
+        async function calcTarget(){
+            const r=await fetch('/api/target-gpa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target_cgpa:document.getElementById('calc-target').value,next_credits:document.getElementById('calc-credits').value})});
+            const d=await r.json();
+            document.getElementById('calc-result').innerHTML=`<div class="alert ${d.achievable?'alert-success':'alert-warning'} py-2 small mt-2">Current CGPA: <strong>${d.current_cgpa}</strong> | Need <strong>${d.needed_gpa}</strong> GPA this sem (${d.next_sem_credits} credits) ${d.achievable?'✅ Achievable':'⚠️ Above 4.0 - not possible'}</div>`;
+        }
+        async function loadLeaderboard(){
+            const r=await fetch('/api/leaderboard');const data=await r.json();
+            document.getElementById('leaderboard').innerHTML=data.slice(0,10).map(e=>`<div class="leaderboard-item ${e.is_me?'me-highlight':''}"><div class="rank-badge ${e.rank<=3?'rank-'+e.rank:'rank-other'}">${e.rank}</div><div class="flex-grow-1"><strong class="small">${e.name}</strong><br><small class="text-muted">${e.program} · Sem ${e.semester}</small></div><strong>${e.cgpa.toFixed(2)}</strong></div>`).join('')||'<small class="text-muted">No data yet</small>';
+        }
+        async function loadAttendance(){
+            const r=await fetch('/api/attendance/summary');const d=await r.json();
+            const el=document.getElementById('attendance-summary');
+            const keys=Object.keys(d);
+            if(!keys.length){el.innerHTML='<small class="text-muted">No records</small>';return;}
+            el.innerHTML=keys.map(k=>`<div class="d-flex justify-content-between align-items-center mb-1"><span class="small fw-bold">${k}</span><span class="small">${d[k].percentage}% (${d[k].present+d[k].late}/${d[k].total})</span></div>`).join('');
+        }
+        async function loadCourses(){
+            const r=await fetch('/api/semesters');const sems=await r.json();
+            const sel=document.getElementById('att-course');
+            sems.forEach(s=>s.courses.forEach(c=>{const o=document.createElement('option');o.value=c.code;o.textContent=c.code;sel.appendChild(o);}));
+        }
+        async function addAttendance(){
+            const code=document.getElementById('att-course').value;const date=document.getElementById('att-date').value;const status=document.getElementById('att-status').value;
+            if(!code||!date)return alert('Select course and date');
+            await fetch('/api/attendance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({course_code:code,date,status})});
+            loadAttendance();
+        }
+        loadProfile();loadCGPA();loadLeaderboard();loadAttendance();loadCourses();
+    </script>
+</body>
+</html>

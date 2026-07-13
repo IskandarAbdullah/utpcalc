@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, render_template, session, redirect, u
 from flask_cors import CORS
 from functools import wraps
 from config import Config
-from models import db, User, Semester, Course, Assessment, CalendarEvent, CourseOutline, Post, PostLike, PostComment
+from models import db, User, Semester, Course, Assessment, CalendarEvent, CourseOutline, Post, PostLike, PostComment, Attendance, CourseReview, Timetable
 from ai_service import get_ai_response, analyze_performance, predict_grade, get_study_tips, extract_pdf_text, parse_assessments_from_pdf, ai_edit_assessments, ai_parse_calendar_events, ai_parse_pdf_calendar, ai_read_image
 from course_catalog import UTP_PROGRAMS
 
@@ -13,12 +13,10 @@ db.init_app(app)
 
 with app.app_context():
     # Drop and recreate all tables to ensure schema is up to date
-    # Remove this after first successful deploy
     import sqlalchemy
     try:
-        db.session.execute(sqlalchemy.text("SELECT is_admin FROM users LIMIT 1"))
+        db.session.execute(sqlalchemy.text("SELECT is_admin, bio, dark_mode, target_cgpa FROM users LIMIT 1"))
     except Exception:
-        # Column missing - need to recreate tables
         db.drop_all()
     db.create_all()
 
@@ -81,6 +79,27 @@ def admin_page():
     if not user or not user.is_admin:
         return redirect(url_for('index'))
     return render_template('admin.html')
+
+
+@app.route('/profile')
+def profile_page():
+    if 'user_id' not in session:
+        return redirect(url_for('login_page'))
+    return render_template('profile.html')
+
+
+@app.route('/timetable')
+def timetable_page():
+    if 'user_id' not in session:
+        return redirect(url_for('login_page'))
+    return render_template('timetable.html')
+
+
+@app.route('/reviews')
+def reviews_page():
+    if 'user_id' not in session:
+        return redirect(url_for('login_page'))
+    return render_template('reviews.html')
 
 
 # ============ AUTH ROUTES ============
@@ -620,6 +639,250 @@ def add_comment(post_id):
     db.session.add(comment)
     db.session.commit()
     return jsonify(comment.to_dict()), 201
+
+
+# ============ PROFILE ROUTES ============
+
+@app.route('/api/profile', methods=['GET'])
+@login_required
+def get_profile():
+    user = get_current_user()
+    return jsonify(user.to_dict())
+
+
+@app.route('/api/profile', methods=['PUT'])
+@login_required
+def update_profile():
+    user = get_current_user()
+    data = request.get_json()
+    if 'full_name' in data:
+        user.full_name = data['full_name']
+    if 'bio' in data:
+        user.bio = data['bio']
+    if 'dark_mode' in data:
+        user.dark_mode = data['dark_mode']
+    if 'target_cgpa' in data:
+        user.target_cgpa = float(data['target_cgpa'])
+    if 'profile_pic' in data:
+        user.profile_pic = data['profile_pic']
+    db.session.commit()
+    return jsonify(user.to_dict())
+
+
+# ============ CGPA ROUTES ============
+
+@app.route('/api/cgpa', methods=['GET'])
+@login_required
+def calculate_cgpa():
+    """Calculate cumulative GPA across all semesters."""
+    user = get_current_user()
+    semesters = Semester.query.filter_by(user_id=user.id).all()
+
+    total_points = 0
+    total_credits = 0
+    semester_gpas = []
+
+    for sem in semesters:
+        sem_points = 0
+        sem_credits = 0
+        for course in sem.courses:
+            points = course.grade_point * course.credit_hours
+            sem_points += points
+            sem_credits += course.credit_hours
+        sem_gpa = round(sem_points / sem_credits, 2) if sem_credits > 0 else 0
+        total_points += sem_points
+        total_credits += sem_credits
+        semester_gpas.append({'name': sem.name, 'gpa': sem_gpa, 'credits': sem_credits})
+
+    cgpa = round(total_points / total_credits, 2) if total_credits > 0 else 0
+    return jsonify({
+        'cgpa': cgpa,
+        'total_credits': total_credits,
+        'semesters': semester_gpas,
+        'target_cgpa': user.target_cgpa
+    })
+
+
+@app.route('/api/target-gpa', methods=['POST'])
+@login_required
+def target_gpa_calculator():
+    """Calculate what GPA needed this semester to reach target CGPA."""
+    user = get_current_user()
+    data = request.get_json() or {}
+    target = float(data.get('target_cgpa', user.target_cgpa or 3.5))
+
+    semesters = Semester.query.filter_by(user_id=user.id).all()
+    total_points = 0
+    total_credits = 0
+    for sem in semesters:
+        for course in sem.courses:
+            total_points += course.grade_point * course.credit_hours
+            total_credits += course.credit_hours
+
+    # Estimate next semester credits (assume 15)
+    next_credits = int(data.get('next_credits', 15))
+    needed_points = (target * (total_credits + next_credits)) - total_points
+    needed_gpa = round(needed_points / next_credits, 2) if next_credits > 0 else 0
+
+    return jsonify({
+        'current_cgpa': round(total_points / total_credits, 2) if total_credits > 0 else 0,
+        'target_cgpa': target,
+        'credits_completed': total_credits,
+        'next_sem_credits': next_credits,
+        'needed_gpa': needed_gpa,
+        'achievable': needed_gpa <= 4.0
+    })
+
+
+# ============ ATTENDANCE ROUTES ============
+
+@app.route('/api/attendance', methods=['GET'])
+@login_required
+def get_attendance():
+    user = get_current_user()
+    records = Attendance.query.filter_by(user_id=user.id).order_by(Attendance.date.desc()).all()
+    return jsonify([a.to_dict() for a in records])
+
+
+@app.route('/api/attendance', methods=['POST'])
+@login_required
+def add_attendance():
+    user = get_current_user()
+    data = request.get_json()
+    if not data or not data.get('course_code') or not data.get('date'):
+        return jsonify({'error': 'course_code and date required'}), 400
+
+    from datetime import date as date_type
+    record = Attendance(
+        course_code=data['course_code'],
+        date=date_type.fromisoformat(data['date']),
+        status=data.get('status', 'present'),
+        user_id=user.id
+    )
+    db.session.add(record)
+    db.session.commit()
+    return jsonify(record.to_dict()), 201
+
+
+@app.route('/api/attendance/summary', methods=['GET'])
+@login_required
+def attendance_summary():
+    user = get_current_user()
+    records = Attendance.query.filter_by(user_id=user.id).all()
+    summary = {}
+    for r in records:
+        if r.course_code not in summary:
+            summary[r.course_code] = {'present': 0, 'absent': 0, 'late': 0, 'total': 0}
+        summary[r.course_code][r.status] += 1
+        summary[r.course_code]['total'] += 1
+    # Calculate percentage
+    for code in summary:
+        total = summary[code]['total']
+        summary[code]['percentage'] = round((summary[code]['present'] + summary[code]['late']) / total * 100, 1) if total > 0 else 0
+    return jsonify(summary)
+
+
+# ============ TIMETABLE ROUTES ============
+
+@app.route('/api/timetable', methods=['GET'])
+@login_required
+def get_timetable():
+    user = get_current_user()
+    entries = Timetable.query.filter_by(user_id=user.id).all()
+    return jsonify([t.to_dict() for t in entries])
+
+
+@app.route('/api/timetable', methods=['POST'])
+@login_required
+def add_timetable():
+    user = get_current_user()
+    data = request.get_json()
+    if not data or not data.get('course_code') or not data.get('day') or not data.get('start_time'):
+        return jsonify({'error': 'course_code, day, and start_time required'}), 400
+
+    entry = Timetable(
+        course_code=data['course_code'],
+        course_name=data.get('course_name', ''),
+        day=data['day'],
+        start_time=data['start_time'],
+        end_time=data.get('end_time', ''),
+        venue=data.get('venue', ''),
+        class_type=data.get('class_type', 'lecture'),
+        user_id=user.id
+    )
+    db.session.add(entry)
+    db.session.commit()
+    return jsonify(entry.to_dict()), 201
+
+
+@app.route('/api/timetable/<int:entry_id>', methods=['DELETE'])
+@login_required
+def delete_timetable(entry_id):
+    entry = Timetable.query.get_or_404(entry_id)
+    db.session.delete(entry)
+    db.session.commit()
+    return jsonify({'message': 'Deleted'})
+
+
+# ============ COURSE REVIEWS ROUTES ============
+
+@app.route('/api/reviews', methods=['GET'])
+def get_reviews():
+    reviews = CourseReview.query.order_by(CourseReview.created_at.desc()).all()
+    return jsonify([r.to_dict() for r in reviews])
+
+
+@app.route('/api/reviews', methods=['POST'])
+@login_required
+def add_review():
+    user = get_current_user()
+    data = request.get_json()
+    if not data or not data.get('course_code') or not data.get('rating'):
+        return jsonify({'error': 'course_code and rating required'}), 400
+
+    review = CourseReview(
+        course_code=data['course_code'],
+        course_name=data.get('course_name', ''),
+        rating=int(data['rating']),
+        difficulty=int(data.get('difficulty', 3)),
+        review_text=data.get('review_text', ''),
+        lecturer=data.get('lecturer', ''),
+        user_id=user.id
+    )
+    db.session.add(review)
+    db.session.commit()
+    return jsonify(review.to_dict()), 201
+
+
+# ============ LEADERBOARD ROUTES ============
+
+@app.route('/api/leaderboard', methods=['GET'])
+@login_required
+def get_leaderboard():
+    """Anonymous GPA leaderboard."""
+    users = User.query.all()
+    entries = []
+    for u in users:
+        semesters = Semester.query.filter_by(user_id=u.id).all()
+        total_points = 0
+        total_credits = 0
+        for sem in semesters:
+            for course in sem.courses:
+                total_points += course.grade_point * course.credit_hours
+                total_credits += course.credit_hours
+        cgpa = round(total_points / total_credits, 2) if total_credits > 0 else 0
+        if total_credits > 0:
+            entries.append({
+                'name': u.full_name[:3] + '***',  # Anonymous
+                'program': u.program_id.upper(),
+                'semester': u.current_semester,
+                'cgpa': cgpa,
+                'is_me': u.id == session.get('user_id')
+            })
+    entries.sort(key=lambda x: x['cgpa'], reverse=True)
+    for i, e in enumerate(entries):
+        e['rank'] = i + 1
+    return jsonify(entries)
 
 
 # ============ OUTLINE ROUTES ============

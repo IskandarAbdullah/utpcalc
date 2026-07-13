@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UTP Marks - Timetable</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root{--utp-blue:#003366;--utp-gold:#FFB81C;--bg:#f0f2f5}
+        body{background:var(--bg);font-family:'Inter',sans-serif;padding-bottom:20px}
+        .navbar{background:linear-gradient(135deg,var(--utp-blue),#004080);padding:12px 0;box-shadow:0 4px 20px rgba(0,51,102,0.2)}
+        .navbar-brand{color:var(--utp-gold)!important;font-weight:700}
+        .nav-link{color:rgba(255,255,255,0.7)!important;font-size:0.85rem}.nav-link:hover,.nav-link.active{color:var(--utp-gold)!important}
+        .card{border:none;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.06)}
+        .day-col{min-height:100px}
+        .day-header{background:linear-gradient(135deg,var(--utp-blue),#004080);color:white;text-align:center;padding:10px;border-radius:10px 10px 0 0;font-weight:600;font-size:0.8rem}
+        .class-block{padding:8px;margin:4px 0;border-radius:8px;font-size:0.72rem;cursor:pointer;transition:all 0.2s;position:relative}
+        .class-block:hover{transform:scale(1.02);box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+        .class-block .delete-btn{position:absolute;top:2px;right:4px;font-size:0.6rem;color:#dc3545;cursor:pointer;display:none}
+        .class-block:hover .delete-btn{display:block}
+        .type-lecture{background:#dbeafe;border-left:3px solid #2563eb}
+        .type-tutorial{background:#d1fae5;border-left:3px solid #059669}
+        .type-lab{background:#fef3cd;border-left:3px solid #d97706}
+        .form-control,.form-select{border-radius:10px;border:2px solid #e5e7eb;font-size:0.82rem}
+        .form-control:focus,.form-select:focus{border-color:var(--utp-gold);box-shadow:0 0 0 3px rgba(255,184,28,0.1)}
+        .btn-utp{background:linear-gradient(135deg,var(--utp-blue),#004080);color:white;border:none;border-radius:10px;font-weight:600;font-size:0.82rem}
+        .btn-utp:hover{color:white;transform:translateY(-1px)}
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark mb-3">
+        <div class="container">
+            <a class="navbar-brand" href="/"><i class="fas fa-graduation-cap me-1"></i>UTP Marks</a>
+            <div class="d-flex gap-3">
+                <a class="nav-link" href="/">Marks</a><a class="nav-link" href="/calendar">Calendar</a>
+                <a class="nav-link active" href="/timetable">Timetable</a><a class="nav-link" href="/profile">Profile</a>
+            </div>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="card p-3 mb-3">
+            <h6 class="mb-2"><i class="fas fa-plus me-1"></i>Add Class</h6>
+            <div class="row g-2">
+                <div class="col-md-2"><select id="tt-course" class="form-select form-select-sm"><option value="">Course</option></select></div>
+                <div class="col-md-2"><select id="tt-day" class="form-select form-select-sm"><option value="monday">Monday</option><option value="tuesday">Tuesday</option><option value="wednesday">Wednesday</option><option value="thursday">Thursday</option><option value="friday">Friday</option></select></div>
+                <div class="col-md-2"><input type="time" id="tt-start" class="form-control form-control-sm"></div>
+                <div class="col-md-2"><input type="time" id="tt-end" class="form-control form-control-sm"></div>
+                <div class="col-md-1"><input type="text" id="tt-venue" class="form-control form-control-sm" placeholder="Venue"></div>
+                <div class="col-md-2"><select id="tt-type" class="form-select form-select-sm"><option value="lecture">Lecture</option><option value="tutorial">Tutorial</option><option value="lab">Lab</option></select></div>
+                <div class="col-md-1"><button class="btn btn-utp btn-sm w-100" onclick="addClass()">Add</button></div>
+            </div>
+        </div>
+        <div class="row" id="timetable-grid"></div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const days=['monday','tuesday','wednesday','thursday','friday'];
+        let allEntries=[];
+        async function loadCourses(){
+            const r=await fetch('/api/semesters');const sems=await r.json();
+            const sel=document.getElementById('tt-course');
+            sems.forEach(s=>s.courses.forEach(c=>{const o=document.createElement('option');o.value=c.code+'|'+c.name;o.textContent=c.code;sel.appendChild(o);}));
+        }
+        async function loadTimetable(){
+            const r=await fetch('/api/timetable');allEntries=await r.json();renderGrid();
+        }
+        function renderGrid(){
+            const grid=document.getElementById('timetable-grid');
+            grid.innerHTML=days.map(day=>{
+                const entries=allEntries.filter(e=>e.day===day).sort((a,b)=>a.start_time.localeCompare(b.start_time));
+                return `<div class="col day-col mb-3"><div class="day-header">${day.charAt(0).toUpperCase()+day.slice(1)}</div><div class="p-1">${entries.map(e=>`<div class="class-block type-${e.class_type}"><span class="delete-btn" onclick="deleteEntry(${e.id})">✕</span><strong>${e.course_code}</strong><br>${e.start_time}-${e.end_time}<br><small>${e.venue||''} · ${e.class_type}</small></div>`).join('')||'<small class="text-muted d-block text-center mt-3">-</small>'}</div></div>`;
+            }).join('');
+        }
+        async function addClass(){
+            const cv=document.getElementById('tt-course').value;if(!cv)return alert('Select course');
+            const[code,name]=cv.split('|');
+            const data={course_code:code,course_name:name||'',day:document.getElementById('tt-day').value,start_time:document.getElementById('tt-start').value,end_time:document.getElementById('tt-end').value,venue:document.getElementById('tt-venue').value,class_type:document.getElementById('tt-type').value};
+            if(!data.start_time)return alert('Set start time');
+            await fetch('/api/timetable',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+            loadTimetable();
+        }
+        async function deleteEntry(id){await fetch(`/api/timetable/${id}`,{method:'DELETE'});loadTimetable();}
+        loadCourses();loadTimetable();
+    </script>
+</body>
+</html>

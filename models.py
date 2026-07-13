@@ -12,9 +12,13 @@ class User(db.Model):
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     full_name = db.Column(db.String(100), nullable=False)
-    program_id = db.Column(db.String(20), nullable=False)  # e.g., "cs", "ce", "me"
-    current_semester = db.Column(db.Integer, nullable=False, default=1)  # 1-8
+    program_id = db.Column(db.String(20), nullable=False)
+    current_semester = db.Column(db.Integer, nullable=False, default=1)
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
+    bio = db.Column(db.String(200), nullable=True, default='')
+    profile_pic = db.Column(db.Text, nullable=True)  # base64
+    dark_mode = db.Column(db.Boolean, nullable=False, default=False)
+    target_cgpa = db.Column(db.Float, nullable=True, default=3.5)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     semesters = db.relationship('Semester', backref='user', lazy=True, cascade='all, delete-orphan')
@@ -34,6 +38,10 @@ class User(db.Model):
             'program_id': self.program_id,
             'current_semester': self.current_semester,
             'is_admin': self.is_admin,
+            'bio': self.bio or '',
+            'profile_pic': self.profile_pic,
+            'dark_mode': self.dark_mode,
+            'target_cgpa': self.target_cgpa,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
@@ -289,4 +297,76 @@ class PostComment(db.Model):
             'text': self.text,
             'username': user.full_name if user else 'Unknown',
             'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+
+class Attendance(db.Model):
+    __tablename__ = 'attendance'
+
+    id = db.Column(db.Integer, primary_key=True)
+    course_code = db.Column(db.String(20), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    status = db.Column(db.String(10), nullable=False, default='present')  # present, absent, late
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'course_code': self.course_code,
+            'date': self.date.isoformat(),
+            'status': self.status
+        }
+
+
+class CourseReview(db.Model):
+    __tablename__ = 'course_reviews'
+
+    id = db.Column(db.Integer, primary_key=True)
+    course_code = db.Column(db.String(20), nullable=False)
+    course_name = db.Column(db.String(100), nullable=False)
+    rating = db.Column(db.Integer, nullable=False)  # 1-5
+    difficulty = db.Column(db.Integer, nullable=False, default=3)  # 1-5
+    review_text = db.Column(db.Text, nullable=True)
+    lecturer = db.Column(db.String(100), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        user = User.query.get(self.user_id)
+        return {
+            'id': self.id,
+            'course_code': self.course_code,
+            'course_name': self.course_name,
+            'rating': self.rating,
+            'difficulty': self.difficulty,
+            'review_text': self.review_text,
+            'lecturer': self.lecturer,
+            'username': user.full_name if user else 'Anonymous',
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+
+class Timetable(db.Model):
+    __tablename__ = 'timetable'
+
+    id = db.Column(db.Integer, primary_key=True)
+    course_code = db.Column(db.String(20), nullable=False)
+    course_name = db.Column(db.String(100), nullable=False)
+    day = db.Column(db.String(10), nullable=False)  # monday, tuesday, etc.
+    start_time = db.Column(db.String(10), nullable=False)  # HH:MM
+    end_time = db.Column(db.String(10), nullable=False)
+    venue = db.Column(db.String(50), nullable=True)
+    class_type = db.Column(db.String(20), nullable=False, default='lecture')  # lecture, tutorial, lab
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'course_code': self.course_code,
+            'course_name': self.course_name,
+            'day': self.day,
+            'start_time': self.start_time,
+            'end_time': self.end_time,
+            'venue': self.venue,
+            'class_type': self.class_type
         }
