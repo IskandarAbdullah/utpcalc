@@ -109,6 +109,13 @@ def reviews_page():
     return render_template('reviews.html')
 
 
+@app.route('/attendance')
+def attendance_page():
+    if 'user_id' not in session:
+        return redirect(url_for('login_page'))
+    return render_template('attendance.html')
+
+
 # ============ AUTH ROUTES ============
 
 @app.route('/api/auth/register', methods=['POST'])

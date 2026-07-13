@@ -73,6 +73,11 @@
                 <!-- Edit Profile -->
                 <div class="card p-4 mb-3">
                     <h6><i class="fas fa-edit me-1"></i>Edit Profile</h6>
+                    <div class="mb-2">
+                        <label class="form-label small">Profile Picture</label>
+                        <input type="file" id="edit-pic" class="form-control form-control-sm" accept="image/*" onchange="previewPic(this)">
+                        <img id="pic-preview" style="display:none;width:60px;height:60px;border-radius:50%;object-fit:cover;margin-top:8px;">
+                    </div>
                     <div class="mb-2"><label class="form-label small">Full Name</label><input type="text" id="edit-name" class="form-control form-control-sm"></div>
                     <div class="mb-2"><label class="form-label small">Bio</label><textarea id="edit-bio" class="form-control form-control-sm" rows="2" maxlength="200"></textarea></div>
                     <div class="mb-2"><label class="form-label small">Target CGPA</label><input type="number" id="edit-target" class="form-control form-control-sm" step="0.1" min="0" max="4"></div>
@@ -90,26 +95,40 @@
                     </div>
                     <div id="calc-result"></div>
                 </div>
-                <!-- Attendance Summary -->
+                <!-- Quick Links -->
                 <div class="card p-4">
-                    <h6><i class="fas fa-clipboard-check me-1"></i>Attendance Summary</h6>
-                    <div id="attendance-summary"><small class="text-muted">No attendance records yet</small></div>
-                    <hr>
-                    <div class="row g-2">
-                        <div class="col"><select id="att-course" class="form-select form-select-sm"><option value="">Course</option></select></div>
-                        <div class="col"><input type="date" id="att-date" class="form-control form-control-sm"></div>
-                        <div class="col"><select id="att-status" class="form-select form-select-sm"><option value="present">Present</option><option value="absent">Absent</option><option value="late">Late</option></select></div>
-                        <div class="col-auto"><button class="btn btn-utp btn-sm" onclick="addAttendance()">+</button></div>
-                    </div>
+                    <h6><i class="fas fa-link me-1"></i>Quick Links</h6>
+                    <a href="/attendance" class="btn btn-outline-primary btn-sm w-100 mb-2"><i class="fas fa-clipboard-check me-1"></i>Attendance Tracker</a>
+                    <a href="/reviews" class="btn btn-outline-warning btn-sm w-100 mb-2"><i class="fas fa-star me-1"></i>Course Reviews</a>
+                    <a href="/outlines" class="btn btn-outline-secondary btn-sm w-100 mb-2"><i class="fas fa-file-pdf me-1"></i>Course Outlines</a>
+                    <a href="/admin" class="btn btn-outline-danger btn-sm w-100" id="admin-link" style="display:none;"><i class="fas fa-shield-halved me-1"></i>Admin Panel</a>
                 </div>
             </div>
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        let profilePicData = null;
+
+        function previewPic(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('pic-preview').src = e.target.result;
+                    document.getElementById('pic-preview').style.display = 'block';
+                    profilePicData = e.target.result;
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
         async function loadProfile(){
             const r=await fetch('/api/profile');const u=await r.json();
-            document.getElementById('avatar').textContent=u.full_name.charAt(0);
+            if (u.profile_pic) {
+                document.getElementById('avatar').innerHTML = `<img src="${u.profile_pic}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+            } else {
+                document.getElementById('avatar').textContent=u.full_name.charAt(0);
+            }
             document.getElementById('profile-name').textContent=u.full_name;
             document.getElementById('profile-info').textContent=`@${u.username} · ${u.program_id.toUpperCase()} · Sem ${u.current_semester}`;
             document.getElementById('profile-bio').textContent=u.bio||'No bio yet';
@@ -117,6 +136,7 @@
             document.getElementById('edit-bio').value=u.bio||'';
             document.getElementById('edit-target').value=u.target_cgpa||3.5;
             document.getElementById('edit-darkmode').checked=u.dark_mode;
+            if (u.is_admin) document.getElementById('admin-link').style.display='block';
         }
         async function loadCGPA(){
             const r=await fetch('/api/cgpa');const d=await r.json();
@@ -129,7 +149,14 @@
             document.getElementById('cgpa-target-text').textContent=`Target: ${d.target_cgpa} | Current: ${d.cgpa.toFixed(2)}`;
         }
         async function saveProfile(){
-            await fetch('/api/profile',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({full_name:document.getElementById('edit-name').value,bio:document.getElementById('edit-bio').value,target_cgpa:document.getElementById('edit-target').value,dark_mode:document.getElementById('edit-darkmode').checked})});
+            const data = {
+                full_name: document.getElementById('edit-name').value,
+                bio: document.getElementById('edit-bio').value,
+                target_cgpa: document.getElementById('edit-target').value,
+                dark_mode: document.getElementById('edit-darkmode').checked
+            };
+            if (profilePicData) data.profile_pic = profilePicData;
+            await fetch('/api/profile',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
             loadProfile();loadCGPA();alert('Saved!');
         }
         async function calcTarget(){
@@ -141,25 +168,7 @@
             const r=await fetch('/api/leaderboard');const data=await r.json();
             document.getElementById('leaderboard').innerHTML=data.slice(0,10).map(e=>`<div class="leaderboard-item ${e.is_me?'me-highlight':''}"><div class="rank-badge ${e.rank<=3?'rank-'+e.rank:'rank-other'}">${e.rank}</div><div class="flex-grow-1"><strong class="small">${e.name}</strong><br><small class="text-muted">${e.program} · Sem ${e.semester}</small></div><strong>${e.cgpa.toFixed(2)}</strong></div>`).join('')||'<small class="text-muted">No data yet</small>';
         }
-        async function loadAttendance(){
-            const r=await fetch('/api/attendance/summary');const d=await r.json();
-            const el=document.getElementById('attendance-summary');
-            const keys=Object.keys(d);
-            if(!keys.length){el.innerHTML='<small class="text-muted">No records</small>';return;}
-            el.innerHTML=keys.map(k=>`<div class="d-flex justify-content-between align-items-center mb-1"><span class="small fw-bold">${k}</span><span class="small">${d[k].percentage}% (${d[k].present+d[k].late}/${d[k].total})</span></div>`).join('');
-        }
-        async function loadCourses(){
-            const r=await fetch('/api/semesters');const sems=await r.json();
-            const sel=document.getElementById('att-course');
-            sems.forEach(s=>s.courses.forEach(c=>{const o=document.createElement('option');o.value=c.code;o.textContent=c.code;sel.appendChild(o);}));
-        }
-        async function addAttendance(){
-            const code=document.getElementById('att-course').value;const date=document.getElementById('att-date').value;const status=document.getElementById('att-status').value;
-            if(!code||!date)return alert('Select course and date');
-            await fetch('/api/attendance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({course_code:code,date,status})});
-            loadAttendance();
-        }
-        loadProfile();loadCGPA();loadLeaderboard();loadAttendance();loadCourses();
+        loadProfile();loadCGPA();loadLeaderboard();
     </script>
 </body>
 </html>
