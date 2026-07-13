@@ -8,8 +8,8 @@ class Config:
 
     # OpenRouter API (free models available)
     OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY', '')
-    OPENROUTER_MODEL = os.environ.get('OPENROUTER_MODEL', 'meta-llama/llama-3.1-8b-instruct:free')
-    OPENROUTER_VISION_MODEL = os.environ.get('OPENROUTER_VISION_MODEL', 'meta-llama/llama-4-scout:free')
+    OPENROUTER_MODEL = os.environ.get('OPENROUTER_MODEL', 'meta-llama/llama-3.3-70b-instruct:free')
+    OPENROUTER_VISION_MODEL = os.environ.get('OPENROUTER_VISION_MODEL', 'nvidia/nemotron-nano-12b-v2-vl:free')
 
     # Fallback to Ollama if no OpenRouter key (for local dev)
     OLLAMA_MODEL = os.environ.get('OLLAMA_MODEL', 'llama3.1')

@@ -16,6 +16,7 @@ def _chat(messages, use_vision=False):
 def _chat_openrouter(messages, use_vision=False):
     """Chat via OpenRouter API (free models available)."""
     import httpx
+    import time
 
     model = Config.OPENROUTER_VISION_MODEL if use_vision else Config.OPENROUTER_MODEL
     headers = {
@@ -44,15 +45,27 @@ def _chat_openrouter(messages, use_vision=False):
         'max_tokens': 2048
     }
 
-    response = httpx.post(
-        'https://openrouter.ai/api/v1/chat/completions',
-        headers=headers,
-        json=payload,
-        timeout=60
-    )
-    response.raise_for_status()
-    data = response.json()
-    return data['choices'][0]['message']['content']
+    # Retry up to 5 times on rate limit, also try fallback models
+    models_to_try = [model, 'meta-llama/llama-3.2-3b-instruct:free', 'nousresearch/hermes-3-llama-3.1-405b:free', 'qwen/qwen3-coder:free']
+
+    for m in models_to_try:
+        payload['model'] = m
+        for attempt in range(3):
+            response = httpx.post(
+                'https://openrouter.ai/api/v1/chat/completions',
+                headers=headers,
+                json=payload,
+                timeout=60
+            )
+            if response.status_code == 200:
+                data = response.json()
+                return data['choices'][0]['message']['content']
+            elif response.status_code == 429:
+                time.sleep(2 * (attempt + 1))
+            else:
+                break  # Try next model
+
+    raise Exception('AI models are busy right now. Please try again in a minute.')
 
 
 def _chat_ollama(messages, use_vision=False):
