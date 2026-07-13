@@ -14,40 +14,74 @@
             --utp-gold: #FFB81C;
             --utp-light: #f8f9fa;
         }
-        body { background-color: var(--utp-light); font-family: 'Segoe UI', sans-serif; }
+        body { background-color: var(--utp-light); font-family: 'Segoe UI', sans-serif; padding-bottom: 70px; }
         .navbar { background: linear-gradient(135deg, var(--utp-blue), #004080); }
-        .navbar-brand { color: var(--utp-gold) !important; font-weight: 700; }
+        .navbar-brand { color: var(--utp-gold) !important; font-weight: 700; font-size: 1rem; }
         .card { border: none; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
         .card-header { border-radius: 12px 12px 0 0 !important; }
         .btn-utp { background: var(--utp-blue); color: white; border: none; }
         .btn-utp:hover { background: #004080; color: white; }
         .btn-gold { background: var(--utp-gold); color: var(--utp-blue); border: none; font-weight: 600; }
         .btn-gold:hover { background: #e6a519; color: var(--utp-blue); }
-        .grade-badge { font-size: 1.5rem; font-weight: 700; padding: 8px 16px; border-radius: 8px; }
+        .grade-badge { font-size: 1.2rem; font-weight: 700; padding: 6px 12px; border-radius: 8px; }
         .grade-a { background: #d4edda; color: #155724; }
         .grade-b { background: #cce5ff; color: #004085; }
         .grade-c { background: #fff3cd; color: #856404; }
         .grade-d { background: #f8d7da; color: #721c24; }
         .grade-f { background: #721c24; color: white; }
         .gpa-display { font-size: 2.5rem; font-weight: 700; color: var(--utp-blue); }
-        .ai-chat-box { height: 400px; overflow-y: auto; background: #f0f4f8; border-radius: 8px; padding: 16px; }
-        .ai-message { background: white; border-radius: 12px; padding: 12px 16px; margin-bottom: 8px; }
-        .user-message { background: var(--utp-blue); color: white; border-radius: 12px; padding: 12px 16px; margin-bottom: 8px; margin-left: 20%; }
+        .ai-chat-box { height: 350px; overflow-y: auto; background: #f0f4f8; border-radius: 8px; padding: 12px; }
+        .ai-message { background: white; border-radius: 12px; padding: 10px 14px; margin-bottom: 8px; font-size: 0.9rem; }
+        .user-message { background: var(--utp-blue); color: white; border-radius: 12px; padding: 10px 14px; margin-bottom: 8px; margin-left: 10%; font-size: 0.9rem; }
         .progress-bar-carry { background: var(--utp-gold); }
-        .tab-content { padding-top: 20px; }
+        .tab-content { padding-top: 15px; }
         .assessment-row:hover { background: #f0f4f8; }
         #loading { display: none; }
         .spinner-border-sm { width: 1rem; height: 1rem; }
+
+        /* Mobile bottom nav */
+        .bottom-nav { display: none; }
+        @media (max-width: 768px) {
+            .desktop-nav { display: none !important; }
+            .bottom-nav {
+                display: flex;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background: var(--utp-blue);
+                z-index: 9999;
+                justify-content: space-around;
+                padding: 8px 0;
+                box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+            }
+            .bottom-nav a {
+                color: rgba(255,255,255,0.7);
+                text-decoration: none;
+                text-align: center;
+                font-size: 0.7rem;
+                padding: 4px 8px;
+            }
+            .bottom-nav a.active, .bottom-nav a:hover { color: var(--utp-gold); }
+            .bottom-nav i { display: block; font-size: 1.2rem; margin-bottom: 2px; }
+            .navbar-brand { font-size: 0.9rem; }
+            .container { padding-left: 10px; padding-right: 10px; }
+            .grade-badge { font-size: 1rem; padding: 4px 8px; }
+            .table { font-size: 0.8rem; }
+            .card-header { font-size: 0.85rem; padding: 8px 12px; }
+            .card-body { padding: 12px; }
+            .nav-tabs .nav-link { font-size: 0.8rem; padding: 8px 10px; }
+        }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark mb-4">
+    <nav class="navbar navbar-dark mb-3">
         <div class="container">
             <a class="navbar-brand" href="/">
-                <i class="fas fa-graduation-cap me-2"></i>UTP Mark Calculator
+                <i class="fas fa-graduation-cap me-1"></i>UTP Marks
             </a>
-            <div class="navbar-nav ms-auto d-flex flex-row gap-3 align-items-center">
-                <span class="navbar-text text-white me-3" id="user-greeting"></span>
+            <div class="desktop-nav d-flex flex-row gap-3 align-items-center">
+                <span class="navbar-text text-white me-2" id="user-greeting"></span>
                 <a class="nav-link text-white" href="/"><i class="fas fa-calculator me-1"></i> Marks</a>
                 <a class="nav-link text-white" href="/calendar"><i class="fas fa-calendar me-1"></i> Calendar</a>
                 <a class="nav-link text-white" href="/outlines"><i class="fas fa-file-pdf me-1"></i> Outlines</a>
@@ -55,6 +89,14 @@
             </div>
         </div>
     </nav>
+
+    <!-- Mobile Bottom Nav -->
+    <div class="bottom-nav">
+        <a href="/" class="active"><i class="fas fa-calculator"></i>Marks</a>
+        <a href="/calendar"><i class="fas fa-calendar"></i>Calendar</a>
+        <a href="/outlines"><i class="fas fa-file-pdf"></i>Outlines</a>
+        <a href="#" onclick="doLogout()"><i class="fas fa-sign-out-alt"></i>Logout</a>
+    </div>
     <div class="container">
         <!-- Tabs Navigation -->
         <ul class="nav nav-tabs" id="mainTabs" role="tablist">
