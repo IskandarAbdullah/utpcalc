@@ -1,0 +1,232 @@
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
+
+db = SQLAlchemy()
+
+
+class User(db.Model):
+    __tablename__ = 'users'
+
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    password_hash = db.Column(db.String(256), nullable=False)
+    full_name = db.Column(db.String(100), nullable=False)
+    program_id = db.Column(db.String(20), nullable=False)  # e.g., "cs", "ce", "me"
+    current_semester = db.Column(db.Integer, nullable=False, default=1)  # 1-8
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    semesters = db.relationship('Semester', backref='user', lazy=True, cascade='all, delete-orphan')
+    events = db.relationship('CalendarEvent', backref='user', lazy=True, cascade='all, delete-orphan')
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'username': self.username,
+            'full_name': self.full_name,
+            'program_id': self.program_id,
+            'current_semester': self.current_semester
+        }
+
+
+class Semester(db.Model):
+    __tablename__ = 'semesters'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+    year = db.Column(db.Integer, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    courses = db.relationship('Course', backref='semester', lazy=True, cascade='all, delete-orphan')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'year': self.year,
+            'courses': [c.to_dict() for c in self.courses]
+        }
+
+
+class Course(db.Model):
+    __tablename__ = 'courses'
+
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(20), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    credit_hours = db.Column(db.Integer, nullable=False, default=3)
+    semester_id = db.Column(db.Integer, db.ForeignKey('semesters.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    assessments = db.relationship('Assessment', backref='course', lazy=True, cascade='all, delete-orphan')
+
+    @property
+    def carry_mark(self):
+        """Calculate total carry mark (all assessments excluding final exam)."""
+        total = 0
+        for a in self.assessments:
+            if a.category != 'final_exam':
+                total += a.weighted_score
+        return round(total, 2)
+
+    @property
+    def final_exam_mark(self):
+        """Get final exam mark."""
+        for a in self.assessments:
+            if a.category == 'final_exam':
+                return round(a.weighted_score, 2)
+        return 0
+
+    @property
+    def total_mark(self):
+        """Calculate total mark (carry mark + final exam)."""
+        return round(self.carry_mark + self.final_exam_mark, 2)
+
+    @property
+    def grade(self):
+        """Determine grade based on total mark (UTP grading scale)."""
+        total = self.total_mark
+        if total >= 90:
+            return 'A+'
+        elif total >= 80:
+            return 'A'
+        elif total >= 75:
+            return 'A-'
+        elif total >= 70:
+            return 'B+'
+        elif total >= 65:
+            return 'B'
+        elif total >= 60:
+            return 'B-'
+        elif total >= 55:
+            return 'C+'
+        elif total >= 50:
+            return 'C'
+        elif total >= 45:
+            return 'C-'
+        elif total >= 40:
+            return 'D+'
+        elif total >= 35:
+            return 'D'
+        else:
+            return 'F'
+
+    @property
+    def grade_point(self):
+        """Get grade point value (UTP 4.0 scale)."""
+        grade_map = {
+            'A+': 4.00, 'A': 4.00, 'A-': 3.67,
+            'B+': 3.33, 'B': 3.00, 'B-': 2.67,
+            'C+': 2.33, 'C': 2.00, 'C-': 1.67,
+            'D+': 1.33, 'D': 1.00, 'F': 0.00
+        }
+        return grade_map.get(self.grade, 0.00)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'code': self.code,
+            'name': self.name,
+            'credit_hours': self.credit_hours,
+            'semester_id': self.semester_id,
+            'assessments': [a.to_dict() for a in self.assessments],
+            'carry_mark': self.carry_mark,
+            'final_exam_mark': self.final_exam_mark,
+            'total_mark': self.total_mark,
+            'grade': self.grade,
+            'grade_point': self.grade_point
+        }
+
+
+class Assessment(db.Model):
+    __tablename__ = 'assessments'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    category = db.Column(db.String(30), nullable=False)
+    marks_obtained = db.Column(db.Float, nullable=False, default=0)
+    total_marks = db.Column(db.Float, nullable=False, default=100)
+    weightage = db.Column(db.Float, nullable=False, default=0)
+    course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @property
+    def percentage_score(self):
+        if self.total_marks == 0:
+            return 0
+        return (self.marks_obtained / self.total_marks) * 100
+
+    @property
+    def weighted_score(self):
+        if self.total_marks == 0:
+            return 0
+        return (self.marks_obtained / self.total_marks) * self.weightage
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'category': self.category,
+            'marks_obtained': self.marks_obtained,
+            'total_marks': self.total_marks,
+            'weightage': self.weightage,
+            'percentage_score': round(self.percentage_score, 2),
+            'weighted_score': round(self.weighted_score, 2),
+            'course_id': self.course_id
+        }
+
+
+class CalendarEvent(db.Model):
+    __tablename__ = 'calendar_events'
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    event_type = db.Column(db.String(30), nullable=False)  # test, quiz, assignment, lab, exam, other
+    course_code = db.Column(db.String(20), nullable=True)
+    date = db.Column(db.Date, nullable=False)
+    time = db.Column(db.String(10), nullable=True)  # e.g., "14:00"
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'description': self.description,
+            'event_type': self.event_type,
+            'course_code': self.course_code,
+            'date': self.date.isoformat(),
+            'time': self.time,
+            'user_id': self.user_id
+        }
+
+
+class CourseOutline(db.Model):
+    __tablename__ = 'course_outlines'
+
+    id = db.Column(db.Integer, primary_key=True)
+    course_code = db.Column(db.String(20), nullable=False)
+    course_name = db.Column(db.String(100), nullable=False)
+    filename = db.Column(db.String(200), nullable=False)
+    pdf_text = db.Column(db.Text, nullable=False)  # Extracted text from PDF
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'course_code': self.course_code,
+            'course_name': self.course_name,
+            'filename': self.filename,
+            'user_id': self.user_id,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'text_preview': self.pdf_text[:200] + '...' if len(self.pdf_text) > 200 else self.pdf_text
+        }

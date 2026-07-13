@@ -1,0 +1,789 @@
+from flask import Flask, request, jsonify, render_template, session, redirect, url_for
+from flask_cors import CORS
+from functools import wraps
+from config import Config
+from models import db, User, Semester, Course, Assessment, CalendarEvent, CourseOutline
+from ai_service import get_ai_response, analyze_performance, predict_grade, get_study_tips, extract_pdf_text, parse_assessments_from_pdf, ai_edit_assessments, ai_parse_calendar_events, ai_parse_pdf_calendar, ai_read_image
+from course_catalog import UTP_PROGRAMS
+
+app = Flask(__name__)
+app.config.from_object(Config)
+CORS(app)
+db.init_app(app)
+
+with app.app_context():
+    db.create_all()
+
+
+# ============ AUTH HELPER ============
+
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'user_id' not in session:
+            return jsonify({'error': 'Login required'}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+
+def get_current_user():
+    return User.query.get(session.get('user_id'))
+
+
+# ============ PAGE ROUTES ============
+
+@app.route('/')
+def index():
+    if 'user_id' not in session:
+        return redirect(url_for('login_page'))
+    return render_template('index.html')
+
+
+@app.route('/login')
+def login_page():
+    return render_template('login.html')
+
+
+@app.route('/calendar')
+def calendar_page():
+    if 'user_id' not in session:
+        return redirect(url_for('login_page'))
+    return render_template('calendar.html')
+
+
+@app.route('/outlines')
+def outlines_page():
+    if 'user_id' not in session:
+        return redirect(url_for('login_page'))
+    return render_template('outlines.html')
+
+
+# ============ AUTH ROUTES ============
+
+@app.route('/api/auth/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    required = ['username', 'password', 'full_name', 'program_id', 'current_semester']
+    for field in required:
+        if not data.get(field):
+            return jsonify({'error': f'{field} is required'}), 400
+
+    if data['program_id'] not in UTP_PROGRAMS:
+        return jsonify({'error': 'Invalid programme'}), 400
+
+    if User.query.filter_by(username=data['username']).first():
+        return jsonify({'error': 'Username already taken'}), 400
+
+    user = User(
+        username=data['username'],
+        full_name=data['full_name'],
+        program_id=data['program_id'],
+        current_semester=int(data['current_semester'])
+    )
+    user.set_password(data['password'])
+    db.session.add(user)
+    db.session.commit()
+
+    # Auto-create semester and import courses
+    sem_num = int(data['current_semester'])
+    sem_name = f"Semester {sem_num}"
+    program = UTP_PROGRAMS[data['program_id']]
+
+    semester = Semester(
+        name=sem_name,
+        year=2025,
+        user_id=user.id
+    )
+    db.session.add(semester)
+    db.session.commit()
+
+    # Import courses for current semester
+    if sem_name in program['semesters']:
+        for course_data in program['semesters'][sem_name]:
+            course = Course(
+                code=course_data['code'],
+                name=course_data['name'],
+                credit_hours=course_data['credits'],
+                semester_id=semester.id
+            )
+            db.session.add(course)
+        db.session.commit()
+
+    session['user_id'] = user.id
+    return jsonify({'message': 'Registered successfully', 'user': user.to_dict()}), 201
+
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    if not data or not data.get('username') or not data.get('password'):
+        return jsonify({'error': 'Username and password are required'}), 400
+
+    user = User.query.filter_by(username=data['username']).first()
+    if not user or not user.check_password(data['password']):
+        return jsonify({'error': 'Invalid username or password'}), 401
+
+    session['user_id'] = user.id
+    return jsonify({'message': 'Logged in', 'user': user.to_dict()})
+
+
+@app.route('/api/auth/logout', methods=['POST'])
+def logout():
+    session.pop('user_id', None)
+    return jsonify({'message': 'Logged out'})
+
+
+@app.route('/api/auth/me', methods=['GET'])
+@login_required
+def get_me():
+    user = get_current_user()
+    return jsonify(user.to_dict())
+
+
+# ============ CATALOG ROUTES ============
+
+@app.route('/api/catalog/programs', methods=['GET'])
+def get_programs():
+    programs = []
+    for key, prog in UTP_PROGRAMS.items():
+        programs.append({'id': key, 'name': prog['name']})
+    return jsonify(programs)
+
+
+@app.route('/api/catalog/programs/<program_id>/semesters', methods=['GET'])
+def get_program_semesters(program_id):
+    if program_id not in UTP_PROGRAMS:
+        return jsonify({'error': 'Programme not found'}), 404
+    program = UTP_PROGRAMS[program_id]
+    return jsonify({
+        'id': program_id,
+        'name': program['name'],
+        'semesters': program['semesters']
+    })
+
+
+@app.route('/api/catalog/import', methods=['POST'])
+@login_required
+def import_from_catalog():
+    data = request.get_json()
+    if not data or not data.get('program_id') or not data.get('semester_name') or not data.get('semester_id'):
+        return jsonify({'error': 'program_id, semester_name, and semester_id are required'}), 400
+
+    program_id = data['program_id']
+    semester_name = data['semester_name']
+    semester_id = data['semester_id']
+
+    if program_id not in UTP_PROGRAMS:
+        return jsonify({'error': 'Programme not found'}), 404
+
+    program = UTP_PROGRAMS[program_id]
+    if semester_name not in program['semesters']:
+        return jsonify({'error': 'Semester not found in programme'}), 404
+
+    semester = Semester.query.get_or_404(semester_id)
+    courses_added = []
+
+    for course_data in program['semesters'][semester_name]:
+        existing = Course.query.filter_by(semester_id=semester_id, code=course_data['code']).first()
+        if not existing:
+            course = Course(
+                code=course_data['code'],
+                name=course_data['name'],
+                credit_hours=course_data['credits'],
+                semester_id=semester_id
+            )
+            db.session.add(course)
+            courses_added.append(course_data)
+
+    db.session.commit()
+    return jsonify({'message': f'{len(courses_added)} courses imported', 'courses_added': courses_added}), 201
+
+
+# ============ SEMESTER ROUTES ============
+
+@app.route('/api/semesters', methods=['GET'])
+@login_required
+def get_semesters():
+    user = get_current_user()
+    semesters = Semester.query.filter_by(user_id=user.id).order_by(Semester.year.desc(), Semester.id.desc()).all()
+    return jsonify([s.to_dict() for s in semesters])
+
+
+@app.route('/api/semesters', methods=['POST'])
+@login_required
+def create_semester():
+    user = get_current_user()
+    data = request.get_json()
+    if not data or not data.get('name') or not data.get('year'):
+        return jsonify({'error': 'Name and year are required'}), 400
+
+    semester = Semester(name=data['name'], year=data['year'], user_id=user.id)
+    db.session.add(semester)
+    db.session.commit()
+    return jsonify(semester.to_dict()), 201
+
+
+@app.route('/api/semesters/<int:semester_id>', methods=['DELETE'])
+@login_required
+def delete_semester(semester_id):
+    semester = Semester.query.get_or_404(semester_id)
+    db.session.delete(semester)
+    db.session.commit()
+    return jsonify({'message': 'Semester deleted'}), 200
+
+
+# ============ COURSE ROUTES ============
+
+@app.route('/api/semesters/<int:semester_id>/courses', methods=['GET'])
+@login_required
+def get_courses(semester_id):
+    courses = Course.query.filter_by(semester_id=semester_id).all()
+    return jsonify([c.to_dict() for c in courses])
+
+
+@app.route('/api/semesters/<int:semester_id>/courses', methods=['POST'])
+@login_required
+def create_course(semester_id):
+    Semester.query.get_or_404(semester_id)
+    data = request.get_json()
+    if not data or not data.get('code') or not data.get('name'):
+        return jsonify({'error': 'Course code and name are required'}), 400
+
+    course = Course(
+        code=data['code'].upper(),
+        name=data['name'],
+        credit_hours=data.get('credit_hours', 3),
+        semester_id=semester_id
+    )
+    db.session.add(course)
+    db.session.commit()
+    return jsonify(course.to_dict()), 201
+
+
+@app.route('/api/courses/<int:course_id>', methods=['GET'])
+@login_required
+def get_course(course_id):
+    course = Course.query.get_or_404(course_id)
+    return jsonify(course.to_dict())
+
+
+@app.route('/api/courses/<int:course_id>', methods=['PUT'])
+@login_required
+def update_course(course_id):
+    course = Course.query.get_or_404(course_id)
+    data = request.get_json()
+
+    if 'code' in data:
+        course.code = data['code'].upper()
+    if 'name' in data:
+        course.name = data['name']
+    if 'credit_hours' in data:
+        course.credit_hours = int(data['credit_hours'])
+
+    db.session.commit()
+    return jsonify(course.to_dict())
+
+
+@app.route('/api/courses/<int:course_id>', methods=['DELETE'])
+@login_required
+def delete_course(course_id):
+    course = Course.query.get_or_404(course_id)
+    db.session.delete(course)
+    db.session.commit()
+    return jsonify({'message': 'Course deleted'}), 200
+
+
+# ============ ASSESSMENT ROUTES ============
+
+@app.route('/api/courses/<int:course_id>/assessments', methods=['POST'])
+@login_required
+def create_assessment(course_id):
+    Course.query.get_or_404(course_id)
+    data = request.get_json()
+
+    if not data or not data.get('name') or not data.get('category'):
+        return jsonify({'error': 'Assessment name and category are required'}), 400
+
+    valid_categories = ['test', 'quiz', 'assignment', 'lab', 'midterm', 'final_exam', 'project', 'presentation', 'tutorial', 'other']
+    if data['category'] not in valid_categories:
+        return jsonify({'error': f'Invalid category. Must be one of: {valid_categories}'}), 400
+
+    assessment = Assessment(
+        name=data['name'],
+        category=data['category'],
+        marks_obtained=data.get('marks_obtained', 0),
+        total_marks=data.get('total_marks', 100),
+        weightage=data.get('weightage', 0),
+        course_id=course_id
+    )
+    db.session.add(assessment)
+    db.session.commit()
+    return jsonify(assessment.to_dict()), 201
+
+
+@app.route('/api/assessments/<int:assessment_id>', methods=['PUT'])
+@login_required
+def update_assessment(assessment_id):
+    assessment = Assessment.query.get_or_404(assessment_id)
+    data = request.get_json()
+
+    if 'marks_obtained' in data:
+        assessment.marks_obtained = data['marks_obtained']
+    if 'total_marks' in data:
+        assessment.total_marks = data['total_marks']
+    if 'weightage' in data:
+        assessment.weightage = data['weightage']
+    if 'name' in data:
+        assessment.name = data['name']
+    if 'category' in data:
+        assessment.category = data['category']
+
+    db.session.commit()
+    return jsonify(assessment.to_dict())
+
+
+@app.route('/api/assessments/<int:assessment_id>', methods=['DELETE'])
+@login_required
+def delete_assessment(assessment_id):
+    assessment = Assessment.query.get_or_404(assessment_id)
+    db.session.delete(assessment)
+    db.session.commit()
+    return jsonify({'message': 'Assessment deleted'}), 200
+
+
+# ============ CALCULATION ROUTES ============
+
+@app.route('/api/semesters/<int:semester_id>/gpa', methods=['GET'])
+@login_required
+def calculate_gpa(semester_id):
+    courses = Course.query.filter_by(semester_id=semester_id).all()
+    if not courses:
+        return jsonify({'gpa': 0, 'total_credits': 0, 'courses': []})
+
+    total_points = 0
+    total_credits = 0
+    course_results = []
+
+    for course in courses:
+        points = course.grade_point * course.credit_hours
+        total_points += points
+        total_credits += course.credit_hours
+        course_results.append({
+            'code': course.code,
+            'name': course.name,
+            'credit_hours': course.credit_hours,
+            'carry_mark': course.carry_mark,
+            'final_exam_mark': course.final_exam_mark,
+            'total_mark': course.total_mark,
+            'grade': course.grade,
+            'grade_point': course.grade_point
+        })
+
+    gpa = round(total_points / total_credits, 2) if total_credits > 0 else 0
+    return jsonify({
+        'gpa': gpa,
+        'total_credits': total_credits,
+        'total_points': round(total_points, 2),
+        'courses': course_results
+    })
+
+
+# ============ CALENDAR ROUTES ============
+
+@app.route('/api/calendar/events', methods=['GET'])
+@login_required
+def get_events():
+    user = get_current_user()
+    month = request.args.get('month', type=int)
+    year = request.args.get('year', type=int)
+
+    query = CalendarEvent.query.filter_by(user_id=user.id)
+    if month and year:
+        from sqlalchemy import extract
+        query = query.filter(
+            extract('month', CalendarEvent.date) == month,
+            extract('year', CalendarEvent.date) == year
+        )
+
+    events = query.order_by(CalendarEvent.date).all()
+    return jsonify([e.to_dict() for e in events])
+
+
+@app.route('/api/calendar/events', methods=['POST'])
+@login_required
+def create_event():
+    user = get_current_user()
+    data = request.get_json()
+
+    if not data or not data.get('title') or not data.get('date') or not data.get('event_type'):
+        return jsonify({'error': 'title, date, and event_type are required'}), 400
+
+    from datetime import date as date_type
+    try:
+        event_date = date_type.fromisoformat(data['date'])
+    except ValueError:
+        return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+
+    event = CalendarEvent(
+        title=data['title'],
+        description=data.get('description', ''),
+        event_type=data['event_type'],
+        course_code=data.get('course_code', ''),
+        date=event_date,
+        time=data.get('time', ''),
+        user_id=user.id
+    )
+    db.session.add(event)
+    db.session.commit()
+    return jsonify(event.to_dict()), 201
+
+
+@app.route('/api/calendar/events/<int:event_id>', methods=['DELETE'])
+@login_required
+def delete_event(event_id):
+    event = CalendarEvent.query.get_or_404(event_id)
+    db.session.delete(event)
+    db.session.commit()
+    return jsonify({'message': 'Event deleted'}), 200
+
+
+# ============ OUTLINE ROUTES ============
+
+@app.route('/api/outlines', methods=['GET'])
+@login_required
+def get_outlines():
+    user = get_current_user()
+    outlines = CourseOutline.query.filter_by(user_id=user.id).order_by(CourseOutline.created_at.desc()).all()
+    return jsonify([o.to_dict() for o in outlines])
+
+
+@app.route('/api/outlines', methods=['POST'])
+@login_required
+def upload_outline():
+    user = get_current_user()
+
+    if 'pdf' not in request.files:
+        return jsonify({'error': 'No PDF file uploaded'}), 400
+
+    pdf_file = request.files['pdf']
+    if not pdf_file.filename.lower().endswith('.pdf'):
+        return jsonify({'error': 'File must be a PDF'}), 400
+
+    course_code = request.form.get('course_code', '').strip()
+    course_name = request.form.get('course_name', '').strip()
+
+    if not course_code or not course_name:
+        return jsonify({'error': 'course_code and course_name are required'}), 400
+
+    try:
+        pdf_text = extract_pdf_text(pdf_file)
+        if not pdf_text.strip():
+            return jsonify({'error': 'Could not extract text from PDF. It may be image-based.'}), 400
+
+        # Delete existing outline for this course (replace)
+        CourseOutline.query.filter_by(user_id=user.id, course_code=course_code).delete()
+
+        outline = CourseOutline(
+            course_code=course_code,
+            course_name=course_name,
+            filename=pdf_file.filename,
+            pdf_text=pdf_text,
+            user_id=user.id
+        )
+        db.session.add(outline)
+        db.session.commit()
+
+        return jsonify({'message': f'Outline saved for {course_code}', 'outline': outline.to_dict()}), 201
+    except Exception as e:
+        return jsonify({'error': f'Error processing PDF: {str(e)}'}), 500
+
+
+@app.route('/api/outlines/<int:outline_id>', methods=['DELETE'])
+@login_required
+def delete_outline(outline_id):
+    outline = CourseOutline.query.get_or_404(outline_id)
+    db.session.delete(outline)
+    db.session.commit()
+    return jsonify({'message': 'Outline deleted'})
+
+
+@app.route('/api/outlines/<int:outline_id>/text', methods=['GET'])
+@login_required
+def get_outline_text(outline_id):
+    outline = CourseOutline.query.get_or_404(outline_id)
+    return jsonify({'course_code': outline.course_code, 'text': outline.pdf_text})
+
+
+# ============ AI ROUTES ============
+
+@app.route('/api/ai/chat', methods=['POST'])
+@login_required
+def ai_chat():
+    user = get_current_user()
+    data = request.get_json()
+    if not data or not data.get('message'):
+        return jsonify({'error': 'Message is required'}), 400
+
+    # Build context from semester + course outlines
+    context = ""
+    if data.get('semester_id'):
+        courses = Course.query.filter_by(semester_id=data['semester_id']).all()
+        if courses:
+            context += "Current semester courses and marks:\n"
+            for c in courses:
+                context += f"- {c.code} {c.name}: Carry={c.carry_mark}%, Total={c.total_mark}%, Grade={c.grade}\n"
+                if c.assessments:
+                    for a in c.assessments:
+                        context += f"    {a.name} ({a.category}): {a.marks_obtained}/{a.total_marks}, weightage={a.weightage}%\n"
+
+    # Include full course outlines so AI can reference them directly
+    outlines = CourseOutline.query.filter_by(user_id=user.id).all()
+    if outlines:
+        context += "\n\n=== SAVED COURSE OUTLINES (uploaded by student) ===\n"
+        context += "You already have these PDFs. Do NOT ask the student to share them again.\n"
+        for o in outlines:
+            context += f"\n--- {o.course_code} ({o.course_name}) [file: {o.filename}] ---\n"
+            context += o.pdf_text[:3000] + "\n"
+
+    result = get_ai_response(data['message'], context if context else None)
+    return jsonify(result)
+
+
+@app.route('/api/ai/analyze/<int:semester_id>', methods=['GET'])
+@login_required
+def ai_analyze(semester_id):
+    courses = Course.query.filter_by(semester_id=semester_id).all()
+    if not courses:
+        return jsonify({'error': 'No courses found for this semester'}), 404
+
+    courses_data = [c.to_dict() for c in courses]
+    result = analyze_performance(courses_data)
+    return jsonify(result)
+
+
+@app.route('/api/ai/predict/<int:course_id>', methods=['POST'])
+@login_required
+def ai_predict(course_id):
+    course = Course.query.get_or_404(course_id)
+    data = request.get_json() or {}
+    target_grade = data.get('target_grade')
+    result = predict_grade(course.to_dict(), target_grade)
+    return jsonify(result)
+
+
+@app.route('/api/ai/tips/<int:course_id>', methods=['GET'])
+@login_required
+def ai_tips(course_id):
+    course = Course.query.get_or_404(course_id)
+    result = get_study_tips(course.to_dict())
+    return jsonify(result)
+
+
+@app.route('/api/ai/read-image/<int:course_id>', methods=['POST'])
+@login_required
+def ai_image_read(course_id):
+    """Upload an image (test paper, grade sheet) and AI reads the marks."""
+    course = Course.query.get_or_404(course_id)
+
+    if 'image' not in request.files:
+        return jsonify({'error': 'No image file uploaded'}), 400
+
+    image_file = request.files['image']
+    allowed_ext = ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp']
+    if not any(image_file.filename.lower().endswith(ext) for ext in allowed_ext):
+        return jsonify({'error': 'File must be an image (PNG, JPG, WEBP)'}), 400
+
+    instruction = request.form.get('instruction', f'Extract all marks and grades for course {course.code} ({course.name}) from this image')
+
+    try:
+        image_bytes = image_file.read()
+        result = ai_read_image(image_bytes, instruction)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': f'Error processing image: {str(e)}'}), 500
+
+
+@app.route('/api/ai/pdf-extract/<int:course_id>', methods=['POST'])
+@login_required
+def ai_pdf_extract(course_id):
+    """Upload a PDF (course outline/syllabus) and AI extracts assessments."""
+    course = Course.query.get_or_404(course_id)
+
+    if 'pdf' not in request.files:
+        return jsonify({'error': 'No PDF file uploaded'}), 400
+
+    pdf_file = request.files['pdf']
+    if not pdf_file.filename.lower().endswith('.pdf'):
+        return jsonify({'error': 'File must be a PDF'}), 400
+
+    try:
+        pdf_text = extract_pdf_text(pdf_file)
+        if not pdf_text.strip():
+            return jsonify({'error': 'Could not extract text from PDF. It may be image-based.'}), 400
+
+        result = parse_assessments_from_pdf(pdf_text, course.code)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': f'Error processing PDF: {str(e)}'}), 500
+
+
+@app.route('/api/ai/apply-assessments/<int:course_id>', methods=['POST'])
+@login_required
+def ai_apply_assessments(course_id):
+    """Apply AI-extracted assessments to a course (replaces existing)."""
+    course = Course.query.get_or_404(course_id)
+    data = request.get_json()
+
+    if not data or not data.get('assessments'):
+        return jsonify({'error': 'assessments array is required'}), 400
+
+    # Delete existing assessments
+    Assessment.query.filter_by(course_id=course_id).delete()
+
+    # Add new ones
+    valid_categories = ['test', 'quiz', 'assignment', 'lab', 'midterm', 'final_exam', 'project', 'presentation', 'tutorial', 'other']
+    for a in data['assessments']:
+        cat = a.get('category', 'other')
+        if cat not in valid_categories:
+            cat = 'other'
+        assessment = Assessment(
+            name=a['name'],
+            category=cat,
+            marks_obtained=float(a.get('marks_obtained', 0)),
+            total_marks=float(a.get('total_marks', 100)),
+            weightage=float(a.get('weightage', 0)),
+            course_id=course_id
+        )
+        db.session.add(assessment)
+
+    db.session.commit()
+    return jsonify({'message': f'{len(data["assessments"])} assessments applied', 'course': course.to_dict()})
+
+
+@app.route('/api/ai/edit-assessments/<int:course_id>', methods=['POST'])
+@login_required
+def ai_edit_assessments_route(course_id):
+    """Use AI to edit assessments via natural language instruction."""
+    course = Course.query.get_or_404(course_id)
+    data = request.get_json()
+
+    if not data or not data.get('instruction'):
+        return jsonify({'error': 'instruction is required'}), 400
+
+    result = ai_edit_assessments(course.to_dict(), data['instruction'])
+    return jsonify(result)
+
+
+@app.route('/api/ai/calendar-edit', methods=['POST'])
+@login_required
+def ai_calendar_edit():
+    """Use AI to add/edit/delete calendar events via natural language."""
+    user = get_current_user()
+    data = request.get_json()
+
+    if not data or not data.get('instruction'):
+        return jsonify({'error': 'instruction is required'}), 400
+
+    # Get current events for context
+    existing_events = [e.to_dict() for e in CalendarEvent.query.filter_by(user_id=user.id).order_by(CalendarEvent.date).all()]
+
+    # Get courses for context
+    semesters = Semester.query.filter_by(user_id=user.id).all()
+    courses = []
+    for sem in semesters:
+        for c in sem.courses:
+            courses.append({'code': c.code, 'name': c.name})
+
+    result = ai_parse_calendar_events(data['instruction'], existing_events, courses)
+    return jsonify(result)
+
+
+@app.route('/api/ai/calendar-apply', methods=['POST'])
+@login_required
+def ai_calendar_apply():
+    """Apply AI-generated calendar events (add/delete)."""
+    user = get_current_user()
+    data = request.get_json()
+
+    if not data or not data.get('events'):
+        return jsonify({'error': 'events array is required'}), 400
+
+    from datetime import date as date_type
+    added = 0
+    deleted = 0
+
+    for evt in data['events']:
+        action = evt.get('action', 'add')
+
+        if action == 'delete':
+            # Find and delete matching event
+            existing = CalendarEvent.query.filter_by(
+                user_id=user.id,
+                title=evt['title'],
+                date=date_type.fromisoformat(evt['date'])
+            ).first()
+            if existing:
+                db.session.delete(existing)
+                deleted += 1
+        else:
+            # Add new event
+            try:
+                event_date = date_type.fromisoformat(evt['date'])
+            except (ValueError, KeyError):
+                continue
+
+            event = CalendarEvent(
+                title=evt['title'],
+                description=evt.get('description', ''),
+                event_type=evt.get('event_type', 'other'),
+                course_code=evt.get('course_code', ''),
+                date=event_date,
+                time=evt.get('time', ''),
+                user_id=user.id
+            )
+            db.session.add(event)
+            added += 1
+
+    db.session.commit()
+    return jsonify({'message': f'{added} events added, {deleted} events deleted'})
+
+
+@app.route('/api/ai/calendar-pdf', methods=['POST'])
+@login_required
+def ai_calendar_pdf():
+    """Upload a PDF (schedule/timetable) and AI extracts calendar events."""
+    user = get_current_user()
+
+    if 'pdf' not in request.files:
+        return jsonify({'error': 'No PDF file uploaded'}), 400
+
+    pdf_file = request.files['pdf']
+    if not pdf_file.filename.lower().endswith('.pdf'):
+        return jsonify({'error': 'File must be a PDF'}), 400
+
+    # Get course code if user selected one
+    selected_course_code = request.form.get('course_code', '')
+
+    try:
+        pdf_text = extract_pdf_text(pdf_file)
+        if not pdf_text.strip():
+            return jsonify({'error': 'Could not extract text from PDF.'}), 400
+
+        # Get courses for context
+        semesters = Semester.query.filter_by(user_id=user.id).all()
+        courses = []
+        for sem in semesters:
+            for c in sem.courses:
+                courses.append({'code': c.code, 'name': c.name})
+
+        result = ai_parse_pdf_calendar(pdf_text, courses, selected_course_code)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': f'Error processing PDF: {str(e)}'}), 500
+
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
