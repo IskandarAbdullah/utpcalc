@@ -101,7 +101,9 @@
                     <a href="/attendance" class="btn btn-outline-primary btn-sm w-100 mb-2"><i class="fas fa-clipboard-check me-1"></i>Attendance Tracker</a>
                     <a href="/reviews" class="btn btn-outline-warning btn-sm w-100 mb-2"><i class="fas fa-star me-1"></i>Course Reviews</a>
                     <a href="/outlines" class="btn btn-outline-secondary btn-sm w-100 mb-2"><i class="fas fa-file-pdf me-1"></i>Course Outlines</a>
-                    <a href="/admin" class="btn btn-outline-danger btn-sm w-100" id="admin-link" style="display:none;"><i class="fas fa-shield-halved me-1"></i>Admin Panel</a>
+                    <a href="/admin" class="btn btn-outline-danger btn-sm w-100 mb-2" id="admin-link" style="display:none;"><i class="fas fa-shield-halved me-1"></i>Admin Panel</a>
+                    <hr>
+                    <button class="btn btn-danger btn-sm w-100" onclick="doLogout()"><i class="fas fa-sign-out-alt me-1"></i>Logout</button>
                 </div>
             </div>
         </div>
@@ -169,6 +171,11 @@
             document.getElementById('leaderboard').innerHTML=data.slice(0,10).map(e=>`<div class="leaderboard-item ${e.is_me?'me-highlight':''}"><div class="rank-badge ${e.rank<=3?'rank-'+e.rank:'rank-other'}">${e.rank}</div><div class="flex-grow-1"><strong class="small">${e.name}</strong><br><small class="text-muted">${e.program} · Sem ${e.semester}</small></div><strong>${e.cgpa.toFixed(2)}</strong></div>`).join('')||'<small class="text-muted">No data yet</small>';
         }
         loadProfile();loadCGPA();loadLeaderboard();
+
+        async function doLogout() {
+            await fetch('/api/auth/logout', {method: 'POST'});
+            window.location.href = '/login';
+        }
     </script>
 </body>
 </html>

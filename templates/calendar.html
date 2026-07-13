@@ -24,8 +24,8 @@
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
         .calendar-header { background: linear-gradient(135deg, var(--utp-blue), var(--utp-blue-light)); color: white; padding: 10px 4px; text-align: center; font-weight: 600; font-size: 0.75rem; border-radius: 4px; }
         .calendar-day {
-            min-height: 80px; padding: 5px; border: 1px solid #eee; background: white;
-            cursor: pointer; transition: all 0.2s; border-radius: 4px;
+            height: 85px; padding: 5px; border: 1px solid #eee; background: white;
+            cursor: pointer; transition: all 0.2s; border-radius: 4px; overflow: hidden;
         }
         .calendar-day:hover { background: #f0f4ff; border-color: var(--utp-gold); transform: scale(1.02); }
         .calendar-day.today { background: linear-gradient(135deg, #fffde7, #fff8e1); border-color: var(--utp-gold); box-shadow: 0 0 0 2px rgba(255,184,28,0.2); }
@@ -58,7 +58,7 @@
             .bottom-nav a { color: rgba(255,255,255,0.6); text-decoration: none; text-align: center; font-size: 0.6rem; padding: 4px 6px; }
             .bottom-nav a.active, .bottom-nav a:hover { color: var(--utp-gold); }
             .bottom-nav i { display: block; font-size: 1.1rem; margin-bottom: 2px; }
-            .calendar-day { min-height: 60px; padding: 3px; }
+            .calendar-day { height: 60px; padding: 3px; }
             .day-number { font-size: 0.7rem; }
             .event-dot { font-size: 0.5rem; padding: 1px 3px; }
             .card-body { padding: 12px; }
