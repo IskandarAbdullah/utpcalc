@@ -1062,7 +1062,39 @@
                     html += `<button class="btn btn-sm btn-success w-100" onclick="applyExtractedAssessments(${courseId})"><i class="fas fa-check me-1"></i> Apply These Assessments</button>`;
                     resultDiv.innerHTML = html;
                 } else if (data.success && data.raw_text) {
-                    resultDiv.innerHTML = `<small class="text-warning"><i class="fas fa-info-circle me-1"></i>AI read the file but couldn't identify structured assessments. Text: ${data.raw_text.substring(0,200)}...</small>`;
+                    // Try to parse JSON from raw_text (vision model sometimes returns JSON as text)
+                    let parsed = null;
+                    try {
+                        const jsonMatch = data.raw_text.match(/\[[\s\S]*\]/);
+                        if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
+                        if (!parsed) {
+                            const objMatch = data.raw_text.match(/\{[\s\S]*\}/);
+                            if (objMatch) {
+                                const obj = JSON.parse(objMatch[0]);
+                                parsed = obj.assessments || null;
+                            }
+                        }
+                    } catch(e) {}
+
+                    if (parsed && parsed.length > 0) {
+                        pdfExtractedAssessments = parsed.map(a => ({
+                            name: a.name || 'Unknown',
+                            category: a.category || 'other',
+                            marks_obtained: a.marks_obtained || 0,
+                            total_marks: a.total_marks || 100,
+                            weightage: a.weightage || 0
+                        }));
+                        let html = '<small class="text-success"><i class="fas fa-check me-1"></i>Found ' + pdfExtractedAssessments.length + ' assessments:</small>';
+                        html += '<ul class="small mb-2">';
+                        pdfExtractedAssessments.forEach(a => {
+                            html += `<li>${a.name} (${a.category}) - ${a.weightage}%</li>`;
+                        });
+                        html += '</ul>';
+                        html += `<button class="btn btn-sm btn-success w-100" onclick="applyExtractedAssessments(${courseId})"><i class="fas fa-check me-1"></i> Apply These Assessments</button>`;
+                        resultDiv.innerHTML = html;
+                    } else {
+                        resultDiv.innerHTML = `<small class="text-warning"><i class="fas fa-info-circle me-1"></i>AI read the file but couldn't extract assessments clearly. Try a clearer image.</small>`;
+                    }
                 } else {
                     resultDiv.innerHTML = `<small class="text-danger"><i class="fas fa-times me-1"></i>${data.error || 'Could not extract assessments'}</small>`;
                 }
