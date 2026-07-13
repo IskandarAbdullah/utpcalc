@@ -252,14 +252,15 @@
                                 <i class="fas fa-file-pdf me-1"></i> Upload Course Outline
                             </div>
                             <div class="card-body">
-                                <small class="text-muted d-block mb-2">Upload a PDF course outline and AI will extract all assessments automatically.</small>
+                                <small class="text-muted d-block mb-2">Upload a PDF or image of your course outline and AI will extract assessments.</small>
                                 <div class="mb-2">
                                     <select id="pdf-course-select" class="form-select form-select-sm">
                                         <option value="">-- Select Course --</option>
                                     </select>
                                 </div>
                                 <div class="mb-2">
-                                    <input type="file" id="pdf-file" class="form-control form-control-sm" accept=".pdf">
+                                    <input type="file" id="pdf-file" class="form-control form-control-sm" accept=".pdf,image/*">
+                                    <small class="text-muted">PDF or image (JPG, PNG)</small>
                                 </div>
                                 <button class="btn btn-sm btn-utp w-100" onclick="uploadPDF()" id="pdf-upload-btn">
                                     <i class="fas fa-upload me-1"></i> Extract Assessments
@@ -1026,36 +1027,47 @@
             const resultDiv = document.getElementById('pdf-result');
 
             if (!courseId) return alert('Select a course first');
-            if (!fileInput.files[0]) return alert('Select a PDF file');
+            if (!fileInput.files[0]) return alert('Select a file');
+
+            const file = fileInput.files[0];
+            const isImage = file.type.startsWith('image/');
 
             const formData = new FormData();
-            formData.append('pdf', fileInput.files[0]);
 
             resultDiv.style.display = 'block';
-            resultDiv.innerHTML = '<small class="text-info"><i class="fas fa-spinner fa-spin"></i> AI is reading your PDF...</small>';
+            resultDiv.innerHTML = '<small class="text-info"><i class="fas fa-spinner fa-spin"></i> AI is reading your file...</small>';
 
             try {
-                const res = await fetch(`/api/ai/pdf-extract/${courseId}`, {
-                    method: 'POST',
-                    body: formData
-                });
+                let res;
+                if (isImage) {
+                    // Use image vision endpoint
+                    formData.append('image', file);
+                    formData.append('instruction', 'Extract all assessments, their categories, weightages, and total marks from this course outline image.');
+                    res = await fetch(`/api/ai/read-image/${courseId}`, { method: 'POST', body: formData });
+                } else {
+                    // Use PDF endpoint
+                    formData.append('pdf', file);
+                    res = await fetch(`/api/ai/pdf-extract/${courseId}`, { method: 'POST', body: formData });
+                }
                 const data = await res.json();
 
-                if (data.success) {
+                if (data.success && data.assessments && data.assessments.length > 0) {
                     pdfExtractedAssessments = data.assessments;
                     let html = '<small class="text-success"><i class="fas fa-check me-1"></i>Found ' + data.assessments.length + ' assessments:</small>';
                     html += '<ul class="small mb-2">';
                     data.assessments.forEach(a => {
-                        html += `<li>${a.name} (${a.category}) - ${a.weightage}%</li>`;
+                        html += `<li>${a.name} (${a.category}) - ${a.weightage || ''}% ${a.marks_obtained ? '('+a.marks_obtained+'/'+a.total_marks+')' : ''}</li>`;
                     });
                     html += '</ul>';
                     html += `<button class="btn btn-sm btn-success w-100" onclick="applyExtractedAssessments(${courseId})"><i class="fas fa-check me-1"></i> Apply These Assessments</button>`;
                     resultDiv.innerHTML = html;
+                } else if (data.success && data.raw_text) {
+                    resultDiv.innerHTML = `<small class="text-warning"><i class="fas fa-info-circle me-1"></i>AI read the file but couldn't identify structured assessments. Text: ${data.raw_text.substring(0,200)}...</small>`;
                 } else {
-                    resultDiv.innerHTML = `<small class="text-danger"><i class="fas fa-times me-1"></i>${data.error}</small>`;
+                    resultDiv.innerHTML = `<small class="text-danger"><i class="fas fa-times me-1"></i>${data.error || 'Could not extract assessments'}</small>`;
                 }
             } catch (e) {
-                resultDiv.innerHTML = '<small class="text-danger">Error uploading PDF. Check AI service.</small>';
+                resultDiv.innerHTML = '<small class="text-danger">Error processing file. Check AI service.</small>';
             }
         }
 
