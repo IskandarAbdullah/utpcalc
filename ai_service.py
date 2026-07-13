@@ -3,61 +3,56 @@ import re
 import base64
 from config import Config
 
-# ============ AI CLIENT (Gemini cloud or Ollama local) ============
+# ============ AI CLIENT (OpenRouter cloud or Ollama local) ============
 
 def _chat(messages, use_vision=False):
-    """Send chat to AI - uses Gemini if API key set, otherwise falls back to Ollama."""
-    if Config.USE_GEMINI:
-        return _chat_gemini(messages, use_vision)
+    """Send chat to AI - uses OpenRouter if API key set, otherwise falls back to Ollama."""
+    if Config.USE_CLOUD:
+        return _chat_openrouter(messages, use_vision)
     else:
         return _chat_ollama(messages, use_vision)
 
 
-def _chat_gemini(messages, use_vision=False):
-    """Chat via Google Gemini API (free tier)."""
+def _chat_openrouter(messages, use_vision=False):
+    """Chat via OpenRouter API (free models available)."""
     import httpx
 
-    model = Config.GEMINI_VISION_MODEL if use_vision else Config.GEMINI_MODEL
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={Config.GEMINI_API_KEY}"
-
-    # Convert messages to Gemini format
-    contents = []
-    system_instruction = None
-
-    for msg in messages:
-        role = msg['role']
-        if role == 'system':
-            system_instruction = msg['content']
-            continue
-
-        parts = []
-        if msg.get('content'):
-            parts.append({'text': msg['content']})
-        if msg.get('images') and msg['images']:
-            parts.append({
-                'inline_data': {
-                    'mime_type': 'image/jpeg',
-                    'data': msg['images'][0]
-                }
-            })
-
-        gemini_role = 'user' if role == 'user' else 'model'
-        contents.append({'role': gemini_role, 'parts': parts})
-
-    payload = {'contents': contents}
-    if system_instruction:
-        payload['system_instruction'] = {'parts': [{'text': system_instruction}]}
-
-    payload['generationConfig'] = {
-        'temperature': 0.7,
-        'maxOutputTokens': 2048
+    model = Config.OPENROUTER_VISION_MODEL if use_vision else Config.OPENROUTER_MODEL
+    headers = {
+        'Authorization': f'Bearer {Config.OPENROUTER_API_KEY}',
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://utpcalc.onrender.com',
+        'X-Title': 'UTP Mark Calculator'
     }
 
-    response = httpx.post(url, json=payload, timeout=60)
+    # Convert to OpenAI format
+    openai_messages = []
+    for msg in messages:
+        if msg.get('images') and msg['images']:
+            content = [
+                {'type': 'text', 'text': msg['content']},
+                {'type': 'image_url', 'image_url': {'url': f"data:image/jpeg;base64,{msg['images'][0]}"}}
+            ]
+            openai_messages.append({'role': msg['role'], 'content': content})
+        else:
+            openai_messages.append({'role': msg['role'], 'content': msg['content']})
+
+    payload = {
+        'model': model,
+        'messages': openai_messages,
+        'temperature': 0.7,
+        'max_tokens': 2048
+    }
+
+    response = httpx.post(
+        'https://openrouter.ai/api/v1/chat/completions',
+        headers=headers,
+        json=payload,
+        timeout=60
+    )
     response.raise_for_status()
     data = response.json()
-
-    return data['candidates'][0]['content']['parts'][0]['text']
+    return data['choices'][0]['message']['content']
 
 
 def _chat_ollama(messages, use_vision=False):
@@ -103,7 +98,7 @@ IMPORTANT RULES:
         return {
             'success': False,
             'error': str(e),
-            'response': 'AI service unavailable. Check your Groq API key or Ollama connection.'
+            'response': 'AI service unavailable. Check your OpenRouter API key or Ollama connection.'
         }
 
 
