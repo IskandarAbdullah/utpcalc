@@ -116,6 +116,7 @@
                     </div>
                     ${!u.is_admin ? `
                         <div class="d-flex gap-1">
+                            <button class="btn btn-sm btn-success" style="font-size:0.7rem;" onclick="toggleAdmin(${u.id}, '${u.username}')"><i class="fas fa-crown me-1"></i>Make Admin</button>
                             <button class="btn btn-sm btn-warning" style="font-size:0.7rem;" onclick="resetPassword(${u.id}, '${u.username}')"><i class="fas fa-key me-1"></i>Reset PW</button>
                             <button class="btn btn-sm btn-danger-soft" onclick="deleteUser(${u.id}, '${u.username}')"><i class="fas fa-trash me-1"></i>Delete</button>
                         </div>
@@ -123,6 +124,7 @@
                         <div class="d-flex gap-1">
                             <span class="badge bg-success me-1">Admin</span>
                             <button class="btn btn-sm btn-warning" style="font-size:0.7rem;" onclick="resetPassword(${u.id}, '${u.username}')"><i class="fas fa-key me-1"></i>Reset PW</button>
+                            <button class="btn btn-sm btn-outline-secondary" style="font-size:0.7rem;" onclick="toggleAdmin(${u.id}, '${u.username}')"><i class="fas fa-crown me-1"></i>Remove Admin</button>
                         </div>
                     `}
                 </div>
@@ -164,6 +166,14 @@
             });
             const data = await res.json();
             alert(data.message || data.error);
+        }
+
+        async function toggleAdmin(id, name) {
+            if (!confirm(`Toggle admin for @${name}?`)) return;
+            const res = await fetch(`/api/admin/users/${id}/toggle-admin`, { method: 'POST' });
+            const data = await res.json();
+            alert(data.message);
+            loadUsers();
         }
 
         async function deletePost(id) {

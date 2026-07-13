@@ -643,6 +643,16 @@ def admin_reset_password(user_id):
     return jsonify({'message': f'Password reset for {user.username}'})
 
 
+@app.route('/api/admin/users/<int:user_id>/toggle-admin', methods=['POST'])
+@admin_required
+def admin_toggle_admin(user_id):
+    user = User.query.get_or_404(user_id)
+    user.is_admin = not user.is_admin
+    db.session.commit()
+    action = 'promoted to admin' if user.is_admin else 'removed from admin'
+    return jsonify({'message': f'{user.username} {action}', 'is_admin': user.is_admin})
+
+
 @app.route('/api/admin/posts', methods=['GET'])
 @admin_required
 def admin_get_posts():
