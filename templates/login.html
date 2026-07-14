@@ -191,7 +191,15 @@
         window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
         installBtn.addEventListener('click', async () => {
             if (deferredPrompt) { deferredPrompt.prompt(); const r = await deferredPrompt.userChoice; if (r.outcome==='accepted') installBanner.style.display='none'; deferredPrompt=null; }
-            else { alert('To install:\n\nAndroid: Tap \u22ee menu \u2192 "Add to Home Screen"\niPhone: Tap Share \u2192 "Add to Home Screen"'); }
+            else {
+                // No native prompt available - open browser menu hint
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                if (isIOS) {
+                    installBanner.innerHTML = '<div style="background:#16213e;color:white;padding:14px 20px;border-radius:14px;font-size:0.8rem;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,0.3);"><i class="fas fa-share-square me-1"></i> Tap the <strong>Share</strong> button below, then <strong>"Add to Home Screen"</strong></div>';
+                } else {
+                    installBanner.innerHTML = '<div style="background:#16213e;color:white;padding:14px 20px;border-radius:14px;font-size:0.8rem;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,0.3);"><i class="fas fa-ellipsis-vertical me-1"></i> Tap the <strong>⋮ menu</strong> (top right), then <strong>"Install app"</strong> or <strong>"Add to Home Screen"</strong></div>';
+                }
+            }
         });
         window.addEventListener('appinstalled', () => { installBanner.style.display = 'none'; });
         if (window.matchMedia('(display-mode: standalone)').matches) installBanner.style.display = 'none';
