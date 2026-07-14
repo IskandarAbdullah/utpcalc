@@ -14,8 +14,9 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             min-height: 100vh; display: flex; align-items: center; justify-content: center;
-            font-family: 'Inter', sans-serif; overflow: hidden;
+            font-family: 'Inter', sans-serif; overflow-y: auto;
             background: linear-gradient(135deg, #001a33 0%, #003366 30%, #004080 60%, #002244 100%);
+            padding: 20px 0 80px;
         }
         .bg-animated { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
         .bg-animated::before {
@@ -59,8 +60,8 @@
         }
         .tab-btn.active { color: var(--utp-blue); background: var(--utp-gold); font-weight: 600; box-shadow: 0 4px 12px rgba(255,184,28,0.3); }
         .tab-btn:hover:not(.active) { color: rgba(255,255,255,0.9); }
-        .login-body { padding: 32px 30px 30px; }
-        .form-group { margin-bottom: 20px; }
+        .login-body { padding: 32px 30px 80px; }
+        .form-group { margin-bottom: 16px; }
         .form-group label { display: block; font-size: 0.82rem; font-weight: 600; color: #374151; margin-bottom: 6px; }
         .input-wrapper { position: relative; }
         .input-wrapper i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 0.9rem; z-index: 2; transition: color 0.3s; }
@@ -103,8 +104,8 @@
         }
         #install-btn:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 12px 40px rgba(255,184,28,0.5); }
         @keyframes installGlow { 0%,100% { box-shadow: 0 8px 32px rgba(255,184,28,0.4), 0 0 0 0 rgba(255,184,28,0.4); } 50% { box-shadow: 0 8px 32px rgba(255,184,28,0.4), 0 0 0 8px rgba(255,184,28,0); } }
-        @media (max-height: 700px) { body { align-items: flex-start; padding: 20px 0; overflow-y: auto; } }
-        @media (max-width: 520px) { .login-card { width: 96%; border-radius: 20px; } .login-header { padding: 28px 20px 16px; } .login-body { padding: 24px 20px; } }
+        @media (max-height: 700px) { body { align-items: flex-start; padding: 20px 0 80px; overflow-y: auto; } }
+        @media (max-width: 520px) { .login-card { width: 96%; border-radius: 20px; } .login-header { padding: 28px 20px 16px; } .login-body { padding: 24px 20px 80px; } }
     </style>
 </head>
 <body>
