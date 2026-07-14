@@ -1339,28 +1339,38 @@ def add_note():
         file = request.files['file']
         filename = file.filename
         raw_bytes = file.read()
-        file.seek(0)
 
         # Save original file as base64
         file_data = base64.b64encode(raw_bytes).decode('utf-8')
 
         if file.filename.lower().endswith('.pdf'):
             file_type = 'application/pdf'
-            from io import BytesIO
-            from PyPDF2 import PdfReader
-            reader = PdfReader(BytesIO(raw_bytes))
-            content = ""
-            for page in reader.pages:
-                content += page.extract_text() or ""
-        elif file.content_type.startswith('image/'):
+            try:
+                from io import BytesIO
+                from PyPDF2 import PdfReader
+                reader = PdfReader(BytesIO(raw_bytes))
+                content = ""
+                for page in reader.pages:
+                    content += page.extract_text() or ""
+            except Exception:
+                content = ''
+            # If PyPDF2 failed (scanned PDF), try AI vision
+            if not content.strip():
+                result = ai_read_image(raw_bytes, f"Read all text from this PDF lecture note for {course_code}.")
+                content = result.get('raw_text', '') or result.get('summary', '')
+        elif file.content_type and file.content_type.startswith('image/'):
             file_type = file.content_type
             result = ai_read_image(raw_bytes, f"Read all text from this lecture note for {course_code}. Return all text content.")
             content = result.get('raw_text', '') or result.get('summary', '')
+        else:
+            file_type = 'application/octet-stream'
+            content = f'[File: {filename}]'
     elif request.form.get('content'):
         content = request.form.get('content')
 
-    if not content:
-        return jsonify({'error': 'Could not extract content from file'}), 400
+    if not content or not content.strip():
+        # Still save the file even if we can't extract text
+        content = f'[Uploaded file: {filename} - text extraction failed]'
 
     note = LectureNote(
         course_code=course_code,
