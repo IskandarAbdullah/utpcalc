@@ -145,7 +145,7 @@
         </div>
     </div>
 
-    <div id="install-banner"><button id="install-btn"><i class="fas fa-download"></i> Install App</button></div>
+    <div id="install-banner" style="display:none;"><button id="install-btn"><i class="fas fa-download"></i> Install App</button></div>
 
     <script>
         function showTab(tab) {
@@ -184,21 +184,21 @@
             } catch(e) { showAlert('Connection error', 'danger'); }
         }
 
-        // PWA Install
+        // PWA Install - only show button when Chrome is ready
         let deferredPrompt;
         const installBanner = document.getElementById('install-banner');
         const installBtn = document.getElementById('install-btn');
-        window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBanner.style.display = 'block'; // Only show when ready
+        });
         installBtn.addEventListener('click', async () => {
-            if (deferredPrompt) { deferredPrompt.prompt(); const r = await deferredPrompt.userChoice; if (r.outcome==='accepted') installBanner.style.display='none'; deferredPrompt=null; }
-            else {
-                // No native prompt available - open browser menu hint
-                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-                if (isIOS) {
-                    installBanner.innerHTML = '<div style="background:#16213e;color:white;padding:14px 20px;border-radius:14px;font-size:0.8rem;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,0.3);"><i class="fas fa-share-square me-1"></i> Tap the <strong>Share</strong> button below, then <strong>"Add to Home Screen"</strong></div>';
-                } else {
-                    installBanner.innerHTML = '<div style="background:#16213e;color:white;padding:14px 20px;border-radius:14px;font-size:0.8rem;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,0.3);"><i class="fas fa-ellipsis-vertical me-1"></i> Tap the <strong>⋮ menu</strong> (top right), then <strong>"Install app"</strong> or <strong>"Add to Home Screen"</strong></div>';
-                }
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const r = await deferredPrompt.userChoice;
+                if (r.outcome === 'accepted') installBanner.style.display = 'none';
+                deferredPrompt = null;
             }
         });
         window.addEventListener('appinstalled', () => { installBanner.style.display = 'none'; });
