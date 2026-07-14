@@ -52,17 +52,8 @@
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-dark">
-        <div class="container-fluid px-3">
-            <a class="navbar-brand" href="/"><i class="fas fa-graduation-cap me-1"></i>UTP Marks</a>
-            <div class="d-flex gap-2">
-                <a class="nav-link" href="/">Marks</a>
-                <a class="nav-link active" href="/chat">Chat</a>
-                <a class="nav-link" href="/profile">Profile</a>
-            </div>
-        </div>
-    </nav>
-
+    {% set page = 'chat' %}
+    {% include 'nav.html' %}
     <div class="chat-layout">
         <!-- Sidebar: Course Rooms -->
         <div class="chat-sidebar" id="rooms-list"></div>

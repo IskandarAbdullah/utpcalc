@@ -48,12 +48,8 @@
 {% include "darkmode.html" %}
 </head>
 <body>
-    <nav class="navbar navbar-dark mb-3">
-        <div class="container"><a class="navbar-brand" href="/"><i class="fas fa-graduation-cap me-1"></i>UTP Marks</a>
-            <div class="d-flex gap-3"><a class="nav-link" href="/">Marks</a><a class="nav-link" href="/calendar">Calendar</a><a class="nav-link active" href="/journey">Journey</a><a class="nav-link" href="/profile">Profile</a></div>
-        </div>
-    </nav>
-
+    {% set page = 'journey' %}
+    {% include 'nav.html' %}
     <div class="container" style="max-width:900px;">
         <div class="row">
             <!-- To-Do List -->

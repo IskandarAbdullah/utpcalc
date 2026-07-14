@@ -33,19 +33,8 @@
 {% include "darkmode.html" %}
 </head>
 <body>
-    <nav class="navbar navbar-dark mb-3">
-        <div class="container">
-            <a class="navbar-brand" href="/">
-                <i class="fas fa-graduation-cap me-1"></i>UTP Marks
-            </a>
-            <div class="navbar-nav ms-auto d-flex flex-row gap-3">
-                <a class="nav-link" href="/"><i class="fas fa-calculator me-1"></i> Marks</a>
-                <a class="nav-link" href="/calendar"><i class="fas fa-calendar me-1"></i> Calendar</a>
-                <a class="nav-link active" href="/outlines"><i class="fas fa-file-pdf me-1"></i> Outlines</a>
-                <a class="nav-link" href="#" onclick="doLogout()"><i class="fas fa-sign-out-alt me-1"></i> Logout</a>
-            </div>
-        </div>
-    </nav>
+    {% set page = 'outlines' %}
+    {% include 'nav.html' %}
     <div class="container">
         <div class="row">
             <!-- Upload Section -->

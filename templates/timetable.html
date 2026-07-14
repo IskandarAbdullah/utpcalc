@@ -31,15 +31,8 @@
 {% include "darkmode.html" %}
 </head>
 <body>
-    <nav class="navbar navbar-dark mb-3">
-        <div class="container">
-            <a class="navbar-brand" href="/"><i class="fas fa-graduation-cap me-1"></i>UTP Marks</a>
-            <div class="d-flex gap-3">
-                <a class="nav-link" href="/">Marks</a><a class="nav-link" href="/calendar">Calendar</a>
-                <a class="nav-link active" href="/timetable">Timetable</a><a class="nav-link" href="/profile">Profile</a>
-            </div>
-        </div>
-    </nav>
+    {% set page = 'timetable' %}
+    {% include 'nav.html' %}
     <div class="container">
         <!-- ICS Import -->
         <div class="card p-3 mb-3">

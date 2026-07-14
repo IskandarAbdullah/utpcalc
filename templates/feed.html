@@ -63,39 +63,13 @@
         .file-label:hover { background: #f0f4ff; }
 
         /* Bottom nav */
-        .bottom-nav { display: none; }
-        @media (max-width: 768px) {
-            .desktop-nav { display: none !important; }
-            .bottom-nav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: var(--utp-blue); z-index: 9999; justify-content: space-around; padding: 8px 0; box-shadow: 0 -4px 20px rgba(0,0,0,0.15); }
-            .bottom-nav a { color: rgba(255,255,255,0.6); text-decoration: none; text-align: center; font-size: 0.6rem; padding: 4px 6px; }
-            .bottom-nav a.active, .bottom-nav a:hover { color: var(--utp-gold); }
-            .bottom-nav i { display: block; font-size: 1.1rem; margin-bottom: 2px; }
-        }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 {% include "darkmode.html" %}
 </head>
 <body>
-    <nav class="navbar navbar-dark mb-3">
-        <div class="container">
-            <a class="navbar-brand" href="/"><i class="fas fa-graduation-cap me-1"></i>UTP Marks</a>
-            <div class="desktop-nav d-flex flex-row gap-3">
-                <a class="nav-link" href="/"><i class="fas fa-calculator me-1"></i>Marks</a>
-                <a class="nav-link" href="/calendar"><i class="fas fa-calendar me-1"></i>Calendar</a>
-                <a class="nav-link" href="/outlines"><i class="fas fa-file-pdf me-1"></i>Outlines</a>
-                <a class="nav-link active" href="/feed"><i class="fas fa-images me-1"></i>Feed</a>
-                <a class="nav-link" href="#" onclick="doLogout()"><i class="fas fa-sign-out-alt me-1"></i>Logout</a>
-            </div>
-        </div>
-    </nav>
-    <div class="bottom-nav">
-        <a href="/"><i class="fas fa-calculator"></i>Marks</a>
-        <a href="/calendar"><i class="fas fa-calendar"></i>Calendar</a>
-        <a href="/outlines"><i class="fas fa-file-pdf"></i>Outlines</a>
-        <a href="/feed" class="active"><i class="fas fa-images"></i>Feed</a>
-        <a href="#" onclick="doLogout()"><i class="fas fa-sign-out-alt"></i>Logout</a>
-    </div>
-
+    {% set page = 'feed' %}
+    {% include 'nav.html' %}
     <div class="container" style="max-width: 600px;">
         <!-- People Discovery -->
         <div class="create-post mb-3" style="padding:14px;">
