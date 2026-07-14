@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#003366">
+    <meta name="description" content="UTP Mark Calculator - AI-powered student app for Universiti Teknologi PETRONAS. Track marks, GPA, attendance, timetable, and more.">
+    <link rel="manifest" href="/static/manifest.json">
+    <title>UTP Marks - Smart Student Companion</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root { --blue: #003366; --gold: #FFB81C; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; overflow-x: hidden; }
+
+        /* Hero */
+        .hero {
+            min-height: 100vh; display: flex; align-items: center; position: relative;
+            background: linear-gradient(-45deg, #001a33, #003366, #004080, #002244);
+            background-size: 300% 300%; animation: heroGradient 10s ease infinite;
+        }
+        @keyframes heroGradient { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+
+        .hero::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(255,184,28,0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(0,100,200,0.1) 0%, transparent 50%);
+        }
+
+        .hero-content { position: relative; z-index: 1; }
+        .hero-badge { display: inline-block; background: rgba(255,184,28,0.15); color: var(--gold); padding: 6px 16px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; margin-bottom: 20px; }
+        .hero h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); font-weight: 900; color: white; line-height: 1.1; letter-spacing: -2px; }
+        .hero h1 span { color: var(--gold); }
+        .hero p { color: rgba(255,255,255,0.7); font-size: 1.1rem; max-width: 500px; margin-top: 16px; line-height: 1.6; }
+        .hero-buttons { margin-top: 32px; display: flex; gap: 12px; flex-wrap: wrap; }
+        .btn-hero { padding: 14px 32px; border-radius: 12px; font-weight: 700; font-size: 1rem; text-decoration: none; transition: all 0.3s; }
+        .btn-hero-primary { background: var(--gold); color: var(--blue); }
+        .btn-hero-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(255,184,28,0.3); color: var(--blue); }
+        .btn-hero-secondary { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); }
+        .btn-hero-secondary:hover { background: rgba(255,255,255,0.15); color: white; }
+
+        .hero-stats { margin-top: 48px; display: flex; gap: 32px; }
+        .stat { text-align: center; }
+        .stat-num { font-size: 2rem; font-weight: 800; color: var(--gold); }
+        .stat-label { font-size: 0.75rem; color: rgba(255,255,255,0.5); }
+
+        /* Features */
+        .features { padding: 80px 0; background: #f8f9fb; }
+        .section-title { font-size: 2rem; font-weight: 800; color: var(--blue); text-align: center; margin-bottom: 12px; }
+        .section-sub { text-align: center; color: #6b7280; max-width: 500px; margin: 0 auto 48px; }
+        .feature-card { background: white; border-radius: 16px; padding: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); transition: all 0.3s; height: 100%; }
+        .feature-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.08); }
+        .feature-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 16px; }
+        .feature-card h5 { font-weight: 700; font-size: 1rem; color: var(--blue); }
+        .feature-card p { font-size: 0.85rem; color: #6b7280; margin: 0; }
+
+        /* AI Section */
+        .ai-section { padding: 80px 0; background: linear-gradient(135deg, var(--blue), #004080); color: white; }
+        .ai-section h2 { font-size: 2rem; font-weight: 800; }
+        .ai-feature { display: flex; gap: 12px; margin-bottom: 16px; align-items: flex-start; }
+        .ai-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); margin-top: 6px; flex-shrink: 0; }
+        .ai-feature p { margin: 0; font-size: 0.9rem; opacity: 0.9; }
+
+        /* CTA */
+        .cta { padding: 80px 0; text-align: center; }
+        .cta h2 { font-size: 2rem; font-weight: 800; color: var(--blue); }
+        .cta p { color: #6b7280; margin: 12px 0 32px; }
+
+        /* Footer */
+        .footer { padding: 24px 0; background: var(--blue); text-align: center; color: rgba(255,255,255,0.5); font-size: 0.8rem; }
+
+        @media (max-width: 768px) {
+            .hero-stats { gap: 16px; }
+            .stat-num { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Hero -->
+    <section class="hero">
+        <div class="container hero-content">
+            <div class="row align-items-center">
+                <div class="col-lg-7">
+                    <div class="hero-badge"><i class="fas fa-bolt me-1"></i>Powered by Gemini AI</div>
+                    <h1>Your UTP<br>Academic <span>Super App</span></h1>
+                    <p>Track marks, calculate GPA, manage timetable, chat with classmates, generate flashcards with AI — all in one place. Built for UTP students.</p>
+                    <div class="hero-buttons">
+                        <a href="/login" class="btn-hero btn-hero-primary"><i class="fas fa-rocket me-1"></i>Get Started Free</a>
+                        <a href="#features" class="btn-hero btn-hero-secondary"><i class="fas fa-arrow-down me-1"></i>Learn More</a>
+                    </div>
+                    <div class="hero-stats">
+                        <div class="stat"><div class="stat-num">15+</div><div class="stat-label">Features</div></div>
+                        <div class="stat"><div class="stat-num">9</div><div class="stat-label">Programmes</div></div>
+                        <div class="stat"><div class="stat-num">AI</div><div class="stat-label">Powered</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="features" id="features">
+        <div class="container">
+            <h2 class="section-title">Everything You Need</h2>
+            <p class="section-sub">One app to manage your entire university life at UTP</p>
+            <div class="row g-3">
+                <div class="col-md-4 col-6">
+                    <div class="feature-card">
+                        <div class="feature-icon" style="background:#dbeafe;color:#2563eb;"><i class="fas fa-calculator"></i></div>
+                        <h5>Mark Calculator</h5>
+                        <p>Track test, quiz, assignment marks. Auto-calculates carry marks and GPA.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 col-6">
+                    <div class="feature-card">
+                        <div class="feature-icon" style="background:#dcfce7;color:#16a34a;"><i class="fas fa-chart-bar"></i></div>
+                        <h5>CGPA Tracker</h5>
+                        <p>Cumulative GPA across semesters with target calculator.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 col-6">
+                    <div class="feature-card">
+                        <div class="feature-icon" style="background:#fef3cd;color:#d97706;"><i class="fas fa-calendar"></i></div>
+                        <h5>Calendar & Timetable</h5>
+                        <p>ICS import, weekly schedule, attendance tracking linked together.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 col-6">
+                    <div class="feature-card">
+                        <div class="feature-icon" style="background:#fce7f3;color:#be185d;"><i class="fas fa-robot"></i></div>
+                        <h5>AI Advisor</h5>
+                        <p>Chat about grades, extract assessments from PDFs, read test papers.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 col-6">
+                    <div class="feature-card">
+                        <div class="feature-icon" style="background:#e0e7ff;color:#4338ca;"><i class="fas fa-layer-group"></i></div>
+                        <h5>Notes & Flashcards</h5>
+                        <p>Upload lecture notes, AI generates summaries and quiz flashcards.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 col-6">
+                    <div class="feature-card">
+                        <div class="feature-icon" style="background:#d1fae5;color:#059669;"><i class="fas fa-comments"></i></div>
+                        <h5>Group Chat</h5>
+                        <p>Course-based chat rooms. Discuss with classmates in real-time.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 col-6">
+                    <div class="feature-card">
+                        <div class="feature-icon" style="background:#fef9c3;color:#a16207;"><i class="fas fa-images"></i></div>
+                        <h5>Social Feed</h5>
+                        <p>Share certificates, achievements. Like and comment on posts.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 col-6">
+                    <div class="feature-card">
+                        <div class="feature-icon" style="background:#fee2e2;color:#dc2626;"><i class="fas fa-clock"></i></div>
+                        <h5>Study Timer</h5>
+                        <p>Pomodoro timer with session tracking. Stay focused.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 col-6">
+                    <div class="feature-card">
+                        <div class="feature-icon" style="background:#f3e8ff;color:#7c3aed;"><i class="fas fa-wallet"></i></div>
+                        <h5>Expense Tracker</h5>
+                        <p>Track spending by category. Monthly summaries in RM.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- AI Section -->
+    <section class="ai-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h2>Powered by<br><span style="color:var(--gold);">Google Gemini AI</span></h2>
+                    <p style="opacity:0.7;margin:16px 0 24px;">Not just a calculator — your intelligent academic companion.</p>
+                </div>
+                <div class="col-md-6">
+                    <div class="ai-feature"><div class="ai-dot"></div><p>Upload course outline PDF → AI extracts all assessments automatically</p></div>
+                    <div class="ai-feature"><div class="ai-dot"></div><p>Snap a photo of your test paper → AI reads your marks</p></div>
+                    <div class="ai-feature"><div class="ai-dot"></div><p>Ask "What do I need to get an A?" → AI calculates for you</p></div>
+                    <div class="ai-feature"><div class="ai-dot"></div><p>Upload lecture notes → AI generates flashcards and quizzes</p></div>
+                    <div class="ai-feature"><div class="ai-dot"></div><p>Type "Add test on 20th August" → AI updates your calendar</p></div>
+                    <div class="ai-feature"><div class="ai-dot"></div><p>AI summarizes your notes into concise bullet points</p></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta">
+        <div class="container">
+            <h2>Ready to ace your semester?</h2>
+            <p>Join UTP students already using this app. Free forever.</p>
+            <a href="/login" class="btn-hero btn-hero-primary" style="display:inline-block;"><i class="fas fa-graduation-cap me-1"></i>Start Now — It's Free</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>UTP Marks © 2025 · Built with ❤️ for UTP Students · Powered by Gemini AI</p>
+        </div>
+    </footer>
+</body>
+</html>
