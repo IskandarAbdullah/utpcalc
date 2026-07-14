@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, render_template, session, redirect, u
 from flask_cors import CORS
 from functools import wraps
 from config import Config
-from models import db, User, Semester, Course, Assessment, CalendarEvent, CourseOutline, Post, PostLike, PostComment, Attendance, CourseReview, Timetable, LectureNote, JournalEntry, TodoItem, ChatMessage, Follow, LoginStreak, UserBadge
+from models import db, User, Semester, Course, Assessment, CalendarEvent, CourseOutline, Post, PostLike, PostComment, Attendance, CourseReview, Timetable, LectureNote, JournalEntry, TodoItem, ChatMessage, Follow, Transaction, LoginStreak, UserBadge
 from ai_service import get_ai_response, analyze_performance, predict_grade, get_study_tips, extract_pdf_text, parse_assessments_from_pdf, ai_edit_assessments, ai_parse_calendar_events, ai_parse_pdf_calendar, ai_read_image, _chat
 import re
 from course_catalog import UTP_PROGRAMS
@@ -138,6 +138,13 @@ def study_page():
     if 'user_id' not in session:
         return redirect(url_for('login_page'))
     return render_template('study.html')
+
+
+@app.route('/expenses')
+def expenses_page():
+    if 'user_id' not in session:
+        return redirect(url_for('login_page'))
+    return render_template('expenses.html')
 
 
 # ============ AUTH ROUTES ============
@@ -421,6 +428,82 @@ def get_badges():
             'earned_at': earned_ids.get(badge_id)
         })
     return jsonify(result)
+
+
+# ============ EXPENSE TRACKER ROUTES ============
+
+@app.route('/api/transactions', methods=['GET'])
+@login_required
+def get_transactions():
+    user = get_current_user()
+    month = request.args.get('month', type=int)
+    year = request.args.get('year', type=int)
+    query = Transaction.query.filter_by(user_id=user.id)
+    if month and year:
+        from sqlalchemy import extract
+        query = query.filter(extract('month', Transaction.date) == month, extract('year', Transaction.date) == year)
+    txns = query.order_by(Transaction.date.desc()).all()
+    return jsonify([t.to_dict() for t in txns])
+
+
+@app.route('/api/transactions', methods=['POST'])
+@login_required
+def add_transaction():
+    user = get_current_user()
+    data = request.get_json()
+    if not data or not data.get('amount') or not data.get('category') or not data.get('trans_type') or not data.get('date'):
+        return jsonify({'error': 'amount, category, trans_type, date required'}), 400
+
+    from datetime import date as date_type
+    txn = Transaction(
+        amount=float(data['amount']),
+        category=data['category'],
+        description=data.get('description', ''),
+        trans_type=data['trans_type'],
+        date=date_type.fromisoformat(data['date']),
+        user_id=user.id
+    )
+    db.session.add(txn)
+    db.session.commit()
+    return jsonify(txn.to_dict()), 201
+
+
+@app.route('/api/transactions/<int:txn_id>', methods=['DELETE'])
+@login_required
+def delete_transaction(txn_id):
+    txn = Transaction.query.get_or_404(txn_id)
+    db.session.delete(txn)
+    db.session.commit()
+    return jsonify({'message': 'Deleted'})
+
+
+@app.route('/api/transactions/summary', methods=['GET'])
+@login_required
+def transaction_summary():
+    user = get_current_user()
+    month = request.args.get('month', type=int) or __import__('datetime').date.today().month
+    year = request.args.get('year', type=int) or __import__('datetime').date.today().year
+
+    from sqlalchemy import extract
+    txns = Transaction.query.filter_by(user_id=user.id).filter(
+        extract('month', Transaction.date) == month,
+        extract('year', Transaction.date) == year
+    ).all()
+
+    income = sum(t.amount for t in txns if t.trans_type == 'income')
+    expense = sum(t.amount for t in txns if t.trans_type == 'expense')
+    by_category = {}
+    for t in txns:
+        if t.trans_type == 'expense':
+            by_category[t.category] = by_category.get(t.category, 0) + t.amount
+
+    return jsonify({
+        'month': month, 'year': year,
+        'income': round(income, 2),
+        'expense': round(expense, 2),
+        'balance': round(income - expense, 2),
+        'by_category': by_category
+    })
 
 
 # ============ FOLLOW ROUTES ============

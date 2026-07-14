@@ -506,3 +506,26 @@ class Follow(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     __table_args__ = (db.UniqueConstraint('follower_id', 'following_id'),)
+
+
+class Transaction(db.Model):
+    __tablename__ = 'transactions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    amount = db.Column(db.Float, nullable=False)
+    category = db.Column(db.String(30), nullable=False)  # food, transport, books, shopping, bills, allowance, scholarship, other
+    description = db.Column(db.String(200), nullable=True)
+    trans_type = db.Column(db.String(10), nullable=False)  # income, expense
+    date = db.Column(db.Date, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'amount': self.amount,
+            'category': self.category,
+            'description': self.description,
+            'trans_type': self.trans_type,
+            'date': self.date.isoformat(),
+        }

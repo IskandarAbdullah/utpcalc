@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UTP Marks - Expense Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    {% include "darkmode.html" %}
+    <style>
+        :root{--utp-blue:#003366;--utp-gold:#FFB81C;--bg:#f0f2f5}
+        body{background:var(--bg);font-family:'Inter',sans-serif;padding-bottom:20px}
+        .card{border:none;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.06)}
+        .form-control,.form-select{border-radius:10px;border:2px solid #e5e7eb;font-size:0.85rem}
+        .form-control:focus,.form-select:focus{border-color:var(--utp-gold);box-shadow:0 0 0 3px rgba(255,184,28,0.1)}
+        .btn-income{background:linear-gradient(135deg,#22c55e,#16a34a);color:white;border:none;border-radius:10px;font-weight:600}
+        .btn-expense{background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;border-radius:10px;font-weight:600}
+        .summary-box{text-align:center;padding:20px;border-radius:14px}
+        .summary-amount{font-size:1.8rem;font-weight:800}
+        .income-box{background:linear-gradient(135deg,#dcfce7,#bbf7d0);color:#166534}
+        .expense-box{background:linear-gradient(135deg,#fee2e2,#fecaca);color:#991b1b}
+        .balance-box{background:linear-gradient(135deg,#dbeafe,#bfdbfe);color:#1e40af}
+        .txn-item{display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:10px;margin-bottom:8px;background:white;box-shadow:0 1px 4px rgba(0,0,0,0.03)}
+        .txn-income{border-left:4px solid #22c55e}
+        .txn-expense{border-left:4px solid #ef4444}
+        .cat-bar{height:8px;border-radius:4px;margin-top:4px}
+        .cat-item{margin-bottom:8px}
+    </style>
+</head>
+<body>
+    {% set page = 'profile' %}
+    {% include 'nav.html' %}
+    <div class="container" style="max-width:700px;">
+        <!-- Summary Cards -->
+        <div class="row g-2 mb-3">
+            <div class="col-4"><div class="summary-box income-box"><div class="summary-amount" id="sum-income">RM0</div><small>Income</small></div></div>
+            <div class="col-4"><div class="summary-box expense-box"><div class="summary-amount" id="sum-expense">RM0</div><small>Expense</small></div></div>
+            <div class="col-4"><div class="summary-box balance-box"><div class="summary-amount" id="sum-balance">RM0</div><small>Balance</small></div></div>
+        </div>
+
+        <div class="row">
+            <!-- Add Transaction -->
+            <div class="col-md-5 mb-3">
+                <div class="card p-3">
+                    <h6 class="small"><i class="fas fa-plus-circle me-1"></i>Add Transaction</h6>
+                    <div class="mb-2">
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-expense btn-sm flex-grow-1" id="type-expense-btn" onclick="setType('expense')"><i class="fas fa-minus me-1"></i>Expense</button>
+                            <button class="btn btn-sm flex-grow-1" id="type-income-btn" style="background:#e5e7eb;" onclick="setType('income')"><i class="fas fa-plus me-1"></i>Income</button>
+                        </div>
+                    </div>
+                    <input type="number" id="txn-amount" class="form-control form-control-sm mb-2" placeholder="Amount (RM)" step="0.01" min="0">
+                    <select id="txn-category" class="form-select form-select-sm mb-2">
+                        <option value="food">🍔 Food</option>
+                        <option value="transport">🚗 Transport</option>
+                        <option value="books">📚 Books & Supplies</option>
+                        <option value="shopping">🛍️ Shopping</option>
+                        <option value="bills">💡 Bills & Utilities</option>
+                        <option value="entertainment">🎮 Entertainment</option>
+                        <option value="allowance">💰 Allowance</option>
+                        <option value="scholarship">🎓 Scholarship</option>
+                        <option value="parttime">💼 Part-time</option>
+                        <option value="other">📌 Other</option>
+                    </select>
+                    <input type="text" id="txn-desc" class="form-control form-control-sm mb-2" placeholder="Description (optional)">
+                    <input type="date" id="txn-date" class="form-control form-control-sm mb-2">
+                    <button class="btn btn-sm w-100" id="txn-submit-btn" style="background:linear-gradient(135deg,var(--utp-blue),#004080);color:white;border-radius:10px;font-weight:600;" onclick="addTransaction()"><i class="fas fa-check me-1"></i>Save</button>
+                </div>
+
+                <!-- Category Breakdown -->
+                <div class="card p-3 mt-3">
+                    <h6 class="small"><i class="fas fa-chart-pie me-1"></i>Spending by Category</h6>
+                    <div id="category-breakdown"></div>
+                </div>
+            </div>
+
+            <!-- Transaction List -->
+            <div class="col-md-7 mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="small mb-0"><i class="fas fa-list me-1"></i>Transactions</h6>
+                    <input type="month" id="txn-filter-month" class="form-control form-control-sm" style="width:auto;" onchange="loadAll()">
+                </div>
+                <div id="txn-list"></div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let txnType = 'expense';
+        const now = new Date();
+        document.getElementById('txn-date').value = now.toISOString().split('T')[0];
+        document.getElementById('txn-filter-month').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+        function setType(type) {
+            txnType = type;
+            document.getElementById('type-expense-btn').style.background = type === 'expense' ? 'linear-gradient(135deg,#ef4444,#dc2626)' : '#e5e7eb';
+            document.getElementById('type-expense-btn').style.color = type === 'expense' ? 'white' : '#374151';
+            document.getElementById('type-income-btn').style.background = type === 'income' ? 'linear-gradient(135deg,#22c55e,#16a34a)' : '#e5e7eb';
+            document.getElementById('type-income-btn').style.color = type === 'income' ? 'white' : '#374151';
+        }
+
+        async function addTransaction() {
+            const amount = parseFloat(document.getElementById('txn-amount').value);
+            if (!amount) return alert('Enter amount');
+            await fetch('/api/transactions', {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({
+                    amount, trans_type: txnType,
+                    category: document.getElementById('txn-category').value,
+                    description: document.getElementById('txn-desc').value.trim(),
+                    date: document.getElementById('txn-date').value
+                })
+            });
+            document.getElementById('txn-amount').value = '';
+            document.getElementById('txn-desc').value = '';
+            loadAll();
+        }
+
+        async function loadAll() {
+            const monthVal = document.getElementById('txn-filter-month').value;
+            const [year, month] = monthVal.split('-').map(Number);
+            // Summary
+            const sr = await fetch(`/api/transactions/summary?month=${month}&year=${year}`);
+            const sum = await sr.json();
+            document.getElementById('sum-income').textContent = `RM${sum.income.toFixed(0)}`;
+            document.getElementById('sum-expense').textContent = `RM${sum.expense.toFixed(0)}`;
+            document.getElementById('sum-balance').textContent = `RM${sum.balance.toFixed(0)}`;
+
+            // Category breakdown
+            const catEl = document.getElementById('category-breakdown');
+            const cats = Object.entries(sum.by_category).sort((a,b) => b[1]-a[1]);
+            const maxCat = cats.length ? cats[0][1] : 1;
+            const catIcons = {food:'🍔',transport:'🚗',books:'📚',shopping:'🛍️',bills:'💡',entertainment:'🎮',other:'📌'};
+            catEl.innerHTML = cats.map(([cat, amt]) => `
+                <div class="cat-item"><div class="d-flex justify-content-between small"><span>${catIcons[cat]||'📌'} ${cat}</span><span>RM${amt.toFixed(0)}</span></div><div class="cat-bar" style="background:#e5e7eb;"><div style="width:${(amt/maxCat*100)}%;height:100%;background:linear-gradient(90deg,#ef4444,#f97316);border-radius:4px;"></div></div></div>
+            `).join('') || '<small class="text-muted">No expenses this month</small>';
+
+            // Transaction list
+            const tr = await fetch(`/api/transactions?month=${month}&year=${year}`);
+            const txns = await tr.json();
+            document.getElementById('txn-list').innerHTML = txns.map(t => `
+                <div class="txn-item txn-${t.trans_type}">
+                    <div>
+                        <div class="small fw-bold">${t.description || t.category}</div>
+                        <small class="text-muted">${t.date} · ${t.category}</small>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <strong class="small" style="color:${t.trans_type==='income'?'#22c55e':'#ef4444'}">${t.trans_type==='income'?'+':'-'}RM${t.amount.toFixed(2)}</strong>
+                        <button class="btn btn-sm p-0 px-1 text-danger" onclick="deleteTxn(${t.id})"><i class="fas fa-times"></i></button>
+                    </div>
+                </div>
+            `).join('') || '<p class="text-muted text-center small">No transactions this month</p>';
+        }
+
+        async function deleteTxn(id) {
+            await fetch(`/api/transactions/${id}`, {method:'DELETE'});
+            loadAll();
+        }
+
+        loadAll();
+    </script>
+</body>
+</html>
