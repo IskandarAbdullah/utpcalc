@@ -3,87 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UTP Marks - Course Prerequisites</title>
+    <title>UTP Marks - Course Map</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
     {% include "darkmode.html" %}
     <style>
         :root{--utp-blue:#003366;--utp-gold:#FFB81C;--bg:#f0f2f5}
-        body{background:var(--bg);font-family:'Inter',sans-serif;padding-bottom:20px;margin:0}
+        body{background:var(--bg);font-family:'Inter',sans-serif;padding-bottom:20px}
         .navbar{background:linear-gradient(135deg,var(--utp-blue),#004080);padding:12px 0;box-shadow:0 4px 20px rgba(0,51,102,0.2)}
         .navbar-brand{color:var(--utp-gold)!important;font-weight:700}
         .nav-link{color:rgba(255,255,255,0.7)!important;font-size:0.85rem}.nav-link:hover,.nav-link.active{color:var(--utp-gold)!important}
-        #prereq-graph{width:100%;height:70vh;border-radius:16px;background:white;box-shadow:0 4px 20px rgba(0,0,0,0.06);border:none}
-        .legend{display:flex;gap:16px;flex-wrap:wrap;padding:12px;font-size:0.8rem}
-        .legend-item{display:flex;align-items:center;gap:6px}
-        .legend-dot{width:14px;height:14px;border-radius:4px}
+        .sem-row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;margin-bottom:16px;padding:12px;background:white;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.04)}
+        .sem-label{font-weight:700;font-size:0.75rem;color:var(--utp-blue);min-width:50px;padding-top:8px}
+        .course-node{padding:8px 12px;border-radius:10px;font-size:0.72rem;font-weight:500;text-align:center;min-width:90px;position:relative;cursor:pointer;transition:all 0.2s;border:2px solid transparent}
+        .course-node:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.1)}
+        .course-node.highlighted{border-color:var(--utp-gold);box-shadow:0 0 0 3px rgba(255,184,28,0.3)}
+        .course-code{font-weight:700;font-size:0.75rem}
+        .course-name{font-size:0.6rem;color:#6b7280;margin-top:2px}
+        .sem1-2{background:#dbeafe;color:#1e40af}
+        .sem3-4{background:#d1fae5;color:#065f46}
+        .sem5-6{background:#fef3cd;color:#92400e}
+        .sem7-8{background:#fce7f3;color:#9d174d}
+        .prereq-info{background:white;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.04);margin-bottom:12px}
+        .arrow-indicator{color:var(--utp-gold);font-size:0.7rem;margin:0 4px}
+        .legend{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;font-size:0.75rem}
+        .legend-item{display:flex;align-items:center;gap:4px}
+        .legend-dot{width:12px;height:12px;border-radius:4px}
     </style>
 </head>
 <body>
     <nav class="navbar navbar-dark mb-3">
         <div class="container"><a class="navbar-brand" href="/"><i class="fas fa-graduation-cap me-1"></i>UTP Marks</a>
-            <div class="d-flex gap-3"><a class="nav-link" href="/">Marks</a><a class="nav-link active" href="/prereq">Prerequisites</a><a class="nav-link" href="/profile">Profile</a></div>
+            <div class="d-flex gap-3"><a class="nav-link" href="/">Marks</a><a class="nav-link active" href="/prereq">Course Map</a><a class="nav-link" href="/profile">Profile</a></div>
         </div>
     </nav>
-    <div class="container-fluid px-3">
+    <div class="container">
         <div class="d-flex justify-content-between align-items-center mb-2">
-            <h6 class="mb-0"><i class="fas fa-project-diagram me-1"></i>Course Prerequisite Map</h6>
+            <h6 class="mb-0"><i class="fas fa-project-diagram me-1"></i>Course Map - Semester by Semester</h6>
             <small class="text-muted" id="prog-name"></small>
         </div>
         <div class="legend">
-            <div class="legend-item"><div class="legend-dot" style="background:#003366"></div>Sem 1-2</div>
-            <div class="legend-item"><div class="legend-dot" style="background:#0284c7"></div>Sem 3-4</div>
-            <div class="legend-item"><div class="legend-dot" style="background:#16a34a"></div>Sem 5-6</div>
-            <div class="legend-item"><div class="legend-dot" style="background:#dc2626"></div>Sem 7-8</div>
-            <div class="legend-item"><i class="fas fa-arrow-right text-muted"></i><small>Arrow = prerequisite</small></div>
+            <div class="legend-item"><div class="legend-dot sem1-2"></div>Sem 1-2</div>
+            <div class="legend-item"><div class="legend-dot sem3-4"></div>Sem 3-4</div>
+            <div class="legend-item"><div class="legend-dot sem5-6"></div>Sem 5-6</div>
+            <div class="legend-item"><div class="legend-dot sem7-8"></div>Sem 7-8</div>
+            <div class="legend-item"><small class="text-muted">Tap course to see prerequisites</small></div>
         </div>
-        <div id="prereq-graph"></div>
+        <div id="prereq-info" class="prereq-info" style="display:none;"></div>
+        <div id="course-map"></div>
     </div>
     <script>
-        async function loadGraph() {
+        async function loadMap() {
             const res = await fetch('/api/prerequisites');
             const data = await res.json();
             document.getElementById('prog-name').textContent = data.programme;
 
-            // Color nodes by semester level (based on course code number)
-            const nodes = data.nodes.map(n => {
-                const num = parseInt(n.id.match(/\d/)?.[0] || '1');
-                let color = '#003366';
-                if (num >= 3 && num <= 4) color = '#0284c7';
-                else if (num >= 5 && num <= 6) color = '#16a34a';
-                else if (num >= 7) color = '#dc2626';
-                else color = '#003366';
-                return {
-                    id: n.id,
-                    label: n.label,
-                    color: {background: color, border: color, highlight: {background: '#FFB81C', border: '#FFB81C'}},
-                    font: {color: 'white', size: 11, face: 'Inter'},
-                    shape: 'box',
-                    borderWidth: 0,
-                    margin: 8
-                };
+            // Get semesters from catalog
+            const semRes = await fetch('/api/semesters');
+            const semesters = await semRes.json();
+
+            // Also get the full catalog
+            const meRes = await fetch('/api/auth/me');
+            const me = await meRes.json();
+            const catRes = await fetch(`/api/catalog/programs/${me.program_id}/semesters`);
+            const catalog = await catRes.json();
+
+            const container = document.getElementById('course-map');
+            let html = '';
+
+            Object.entries(catalog.semesters).forEach(([semName, courses], idx) => {
+                const semNum = idx + 1;
+                const colorClass = semNum <= 2 ? 'sem1-2' : semNum <= 4 ? 'sem3-4' : semNum <= 6 ? 'sem5-6' : 'sem7-8';
+                
+                html += `<div class="sem-row"><div class="sem-label">${semName.replace('Semester ','Sem ')}</div><div class="d-flex gap-2 flex-wrap">`;
+                courses.forEach(c => {
+                    html += `<div class="course-node ${colorClass}" onclick="showPrereq('${c.code}','${c.name}')" id="node-${c.code}">
+                        <div class="course-code">${c.code}</div>
+                        <div class="course-name">${c.name.length > 20 ? c.name.substring(0,20)+'...' : c.name}</div>
+                    </div>`;
+                });
+                html += '</div></div>';
             });
 
-            const edges = data.edges.map(e => ({
-                from: e.from, to: e.to,
-                arrows: 'to',
-                color: {color: '#9ca3af', highlight: '#FFB81C'},
-                smooth: {type: 'cubicBezier', forceDirection: 'vertical'}
-            }));
-
-            const container = document.getElementById('prereq-graph');
-            const network = new vis.Network(container, {nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges)}, {
-                layout: {
-                    hierarchical: {direction: 'UD', sortMethod: 'directed', levelSeparation: 120, nodeSpacing: 160}
-                },
-                physics: false,
-                interaction: {zoomView: true, dragView: true, hover: true},
-                edges: {width: 2}
-            });
+            container.innerHTML = html;
         }
-        loadGraph();
+
+        // Prerequisite data (loaded from API)
+        let prereqData = {};
+        fetch('/api/prerequisites').then(r=>r.json()).then(d => {
+            d.edges.forEach(e => {
+                if (!prereqData[e.to]) prereqData[e.to] = [];
+                prereqData[e.to].push(e.from);
+            });
+        });
+
+        function showPrereq(code, name) {
+            // Clear all highlights
+            document.querySelectorAll('.course-node').forEach(n => n.classList.remove('highlighted'));
+            
+            const info = document.getElementById('prereq-info');
+            const prereqs = prereqData[code] || [];
+            
+            // Highlight this course and its prereqs
+            const el = document.getElementById('node-' + code);
+            if (el) el.classList.add('highlighted');
+            prereqs.forEach(p => {
+                const pel = document.getElementById('node-' + p);
+                if (pel) pel.classList.add('highlighted');
+            });
+
+            if (prereqs.length > 0) {
+                info.style.display = 'block';
+                info.innerHTML = `<strong class="small">${code}</strong> - ${name}<br>
+                    <small class="text-muted">Prerequisites:</small> 
+                    ${prereqs.map(p => `<span class="badge bg-warning text-dark me-1">${p}</span>`).join('')}
+                    <br><small class="text-muted mt-1 d-block">Complete highlighted courses first before taking ${code}</small>`;
+            } else {
+                info.style.display = 'block';
+                info.innerHTML = `<strong class="small">${code}</strong> - ${name}<br><small class="text-success"><i class="fas fa-check me-1"></i>No prerequisites - can take anytime</small>`;
+            }
+        }
+
+        loadMap();
     </script>
 </body>
 </html>
