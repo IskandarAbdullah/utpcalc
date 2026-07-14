@@ -150,9 +150,9 @@
             container.innerHTML = posts.map(p => `
                 <div class="post-card">
                     <div class="post-header">
-                        <div class="post-avatar">${p.username.charAt(0).toUpperCase()}</div>
+                        <div class="post-avatar">${p.profile_pic ? `<img src="${p.profile_pic}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : p.username.charAt(0).toUpperCase()}</div>
                         <div class="post-meta">
-                            <div class="post-username">${p.username}</div>
+                            <div class="post-username" style="color:#ffffff;">${p.username}</div>
                             <div class="post-time">${timeAgo(p.created_at)}</div>
                         </div>
                         <span class="post-type-badge type-${p.post_type}">${p.post_type}</span>

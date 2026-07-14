@@ -259,6 +259,7 @@ class Post(db.Model):
             'post_type': self.post_type,
             'user_id': self.user_id,
             'username': user.full_name if user else 'Unknown',
+            'profile_pic': user.profile_pic if user else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'likes_count': len(self.likes),
             'liked_by_me': any(l.user_id == current_user_id for l in self.likes) if current_user_id else False,
