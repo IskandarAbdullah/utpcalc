@@ -170,7 +170,8 @@ body.dark-mode a { color: var(--utp-gold); }
     }
 
     body {
-        padding-bottom: var(--bottom-nav-height);
+        padding-top: env(safe-area-inset-top, 12px);
+        padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
     }
 }
 
