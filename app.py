@@ -1798,21 +1798,12 @@ def add_note():
     if not content or not content.strip():
         return jsonify({'error': 'Could not extract text from file. Try a clearer image/PDF.'}), 400
 
-    # Generate AI summary
-    try:
-        summary_messages = [
-            {'role': 'system', 'content': 'You are a study assistant. Summarize the following lecture notes in clear bullet points. Keep it concise (max 200 words). Focus on key concepts, definitions, and important points.'},
-            {'role': 'user', 'content': f"Summarize these lecture notes for {course_code} - {title}:\n\n{content[:3000]}"}
-        ]
-        summary = _chat(summary_messages)
-    except Exception:
-        summary = ''
-
+    # Save note immediately (no waiting for AI summary)
     note = LectureNote(
         course_code=course_code,
         title=title,
         content=content,
-        summary=summary,
+        summary='',
         filename=filename,
         week_number=week_number,
         user_id=user.id
@@ -1829,6 +1820,23 @@ def delete_note(note_id):
     db.session.delete(note)
     db.session.commit()
     return jsonify({'message': 'Note deleted'})
+
+
+@app.route('/api/notes/<int:note_id>/summarize', methods=['POST'])
+@login_required
+def summarize_note(note_id):
+    """Generate AI summary for a note on-demand."""
+    note = LectureNote.query.get_or_404(note_id)
+    try:
+        summary_messages = [
+            {'role': 'system', 'content': 'Summarize in clear bullet points. Max 150 words. Key concepts only.'},
+            {'role': 'user', 'content': f"Summarize:\n\n{note.content[:3000]}"}
+        ]
+        note.summary = _chat(summary_messages)
+        db.session.commit()
+        return jsonify({'success': True, 'summary': note.summary})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 
 @app.route('/api/notes/generate-quiz', methods=['POST'])
