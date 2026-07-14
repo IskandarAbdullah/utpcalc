@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, render_template, session, redirect, u
 from flask_cors import CORS
 from functools import wraps
 from config import Config
-from models import db, User, Semester, Course, Assessment, CalendarEvent, CourseOutline, Post, PostLike, PostComment, Attendance, CourseReview, Timetable, LectureNote, JournalEntry, TodoItem, ChatMessage, Follow
+from models import db, User, Semester, Course, Assessment, CalendarEvent, CourseOutline, Post, PostLike, PostComment, Attendance, CourseReview, Timetable, LectureNote, JournalEntry, TodoItem, ChatMessage, Follow, LoginStreak, UserBadge
 from ai_service import get_ai_response, analyze_performance, predict_grade, get_study_tips, extract_pdf_text, parse_assessments_from_pdf, ai_edit_assessments, ai_parse_calendar_events, ai_parse_pdf_calendar, ai_read_image, _chat
 import re
 from course_catalog import UTP_PROGRAMS
@@ -212,6 +212,10 @@ def login():
         return jsonify({'error': 'Invalid username or password'}), 401
 
     session['user_id'] = user.id
+
+    # Update login streak
+    _update_login_streak(user.id)
+
     return jsonify({'message': 'Logged in', 'user': user.to_dict()})
 
 
@@ -226,6 +230,197 @@ def logout():
 def get_me():
     user = get_current_user()
     return jsonify(user.to_dict())
+
+
+# ============ STREAKS & GAMIFICATION ============
+
+# Badge definitions
+BADGES = {
+    'streak_3': {'name': 'On Fire', 'icon': '🔥', 'description': '3-day login streak'},
+    'streak_7': {'name': 'Weekly Warrior', 'icon': '⚡', 'description': '7-day login streak'},
+    'streak_14': {'name': 'Two-Week Titan', 'icon': '💪', 'description': '14-day login streak'},
+    'streak_30': {'name': 'Monthly Master', 'icon': '🏆', 'description': '30-day login streak'},
+    'streak_100': {'name': 'Centurion', 'icon': '👑', 'description': '100-day login streak'},
+    'gpa_3': {'name': 'Honour Roll', 'icon': '📜', 'description': 'CGPA above 3.0'},
+    'gpa_35': {'name': "Dean's List", 'icon': '🎓', 'description': 'CGPA above 3.5'},
+    'gpa_4': {'name': 'Perfect Scholar', 'icon': '💎', 'description': 'CGPA of 4.0'},
+    'courses_5': {'name': 'Course Collector', 'icon': '📚', 'description': 'Tracked 5+ courses'},
+    'courses_20': {'name': 'Semester Veteran', 'icon': '🎖️', 'description': 'Tracked 20+ courses'},
+    'first_post': {'name': 'Social Butterfly', 'icon': '🦋', 'description': 'Made your first post'},
+    'first_review': {'name': 'Critic', 'icon': '⭐', 'description': 'Wrote your first course review'},
+    'notes_10': {'name': 'Note Taker', 'icon': '📝', 'description': 'Uploaded 10+ lecture notes'},
+    'attendance_90': {'name': 'Present!', 'icon': '✅', 'description': '90%+ attendance in a course'},
+    'todo_50': {'name': 'Task Master', 'icon': '✔️', 'description': 'Completed 50+ tasks'},
+}
+
+
+def _update_login_streak(user_id):
+    """Update login streak for a user. Called on login."""
+    from datetime import date, timedelta
+    today = date.today()
+
+    streak = LoginStreak.query.filter_by(user_id=user_id).first()
+    if not streak:
+        streak = LoginStreak(
+            user_id=user_id,
+            last_login_date=today,
+            current_streak=1,
+            longest_streak=1,
+            total_logins=1
+        )
+        db.session.add(streak)
+    else:
+        if streak.last_login_date == today:
+            # Already logged in today, no update needed
+            return streak
+        elif streak.last_login_date == today - timedelta(days=1):
+            # Consecutive day
+            streak.current_streak += 1
+            streak.total_logins += 1
+            if streak.current_streak > streak.longest_streak:
+                streak.longest_streak = streak.current_streak
+        else:
+            # Streak broken
+            streak.current_streak = 1
+            streak.total_logins += 1
+        streak.last_login_date = today
+
+    db.session.commit()
+
+    # Check for streak badges
+    _check_streak_badges(user_id, streak.current_streak)
+
+    return streak
+
+
+def _check_streak_badges(user_id, current_streak):
+    """Award streak badges if milestones hit."""
+    milestones = {3: 'streak_3', 7: 'streak_7', 14: 'streak_14', 30: 'streak_30', 100: 'streak_100'}
+    for days, badge_id in milestones.items():
+        if current_streak >= days:
+            _award_badge(user_id, badge_id)
+
+
+def _check_all_badges(user_id):
+    """Check and award all applicable badges for a user."""
+    user = User.query.get(user_id)
+    if not user:
+        return
+
+    # GPA badges
+    semesters = Semester.query.filter_by(user_id=user_id).all()
+    total_points = 0
+    total_credits = 0
+    total_courses = 0
+    for sem in semesters:
+        for course in sem.courses:
+            total_points += course.grade_point * course.credit_hours
+            total_credits += course.credit_hours
+            total_courses += 1
+    cgpa = round(total_points / total_credits, 2) if total_credits > 0 else 0
+
+    if cgpa >= 3.0:
+        _award_badge(user_id, 'gpa_3')
+    if cgpa >= 3.5:
+        _award_badge(user_id, 'gpa_35')
+    if cgpa >= 4.0:
+        _award_badge(user_id, 'gpa_4')
+
+    # Course badges
+    if total_courses >= 5:
+        _award_badge(user_id, 'courses_5')
+    if total_courses >= 20:
+        _award_badge(user_id, 'courses_20')
+
+    # Post badge
+    if Post.query.filter_by(user_id=user_id).count() >= 1:
+        _award_badge(user_id, 'first_post')
+
+    # Review badge
+    if CourseReview.query.filter_by(user_id=user_id).count() >= 1:
+        _award_badge(user_id, 'first_review')
+
+    # Notes badge
+    if LectureNote.query.filter_by(user_id=user_id).count() >= 10:
+        _award_badge(user_id, 'notes_10')
+
+    # Attendance badge
+    records = Attendance.query.filter_by(user_id=user_id).all()
+    att_by_course = {}
+    for r in records:
+        if r.course_code not in att_by_course:
+            att_by_course[r.course_code] = {'present': 0, 'total': 0}
+        att_by_course[r.course_code]['total'] += 1
+        if r.status in ('present', 'late'):
+            att_by_course[r.course_code]['present'] += 1
+    for code, data in att_by_course.items():
+        if data['total'] >= 5 and (data['present'] / data['total']) >= 0.9:
+            _award_badge(user_id, 'attendance_90')
+            break
+
+    # Todo badge
+    if TodoItem.query.filter_by(user_id=user_id, done=True).count() >= 50:
+        _award_badge(user_id, 'todo_50')
+
+
+def _award_badge(user_id, badge_id):
+    """Award a badge if not already earned."""
+    existing = UserBadge.query.filter_by(user_id=user_id, badge_id=badge_id).first()
+    if not existing:
+        badge = UserBadge(user_id=user_id, badge_id=badge_id)
+        db.session.add(badge)
+        db.session.commit()
+
+
+@app.route('/api/streaks', methods=['GET'])
+@login_required
+def get_streaks():
+    """Get current user's streak data."""
+    user = get_current_user()
+    streak = LoginStreak.query.filter_by(user_id=user.id).first()
+
+    # Also check if streak is still active (not broken today)
+    from datetime import date, timedelta
+    today = date.today()
+
+    if streak:
+        if streak.last_login_date < today - timedelta(days=1):
+            # Streak was broken (didn't log in yesterday)
+            streak.current_streak = 0
+            db.session.commit()
+        return jsonify(streak.to_dict())
+    else:
+        return jsonify({
+            'current_streak': 0,
+            'longest_streak': 0,
+            'total_logins': 0,
+            'last_login_date': None
+        })
+
+
+@app.route('/api/badges', methods=['GET'])
+@login_required
+def get_badges():
+    """Get all badges with user's earned status."""
+    user = get_current_user()
+
+    # Re-check all badges
+    _check_all_badges(user.id)
+
+    earned = UserBadge.query.filter_by(user_id=user.id).all()
+    earned_ids = {b.badge_id: b.earned_at.isoformat() if b.earned_at else None for b in earned}
+
+    result = []
+    for badge_id, info in BADGES.items():
+        result.append({
+            'id': badge_id,
+            'name': info['name'],
+            'icon': info['icon'],
+            'description': info['description'],
+            'earned': badge_id in earned_ids,
+            'earned_at': earned_ids.get(badge_id)
+        })
+    return jsonify(result)
 
 
 # ============ FOLLOW ROUTES ============

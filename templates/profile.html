@@ -69,6 +69,34 @@
                     <h6><i class="fas fa-trophy me-1 text-warning"></i>Leaderboard</h6>
                     <div id="leaderboard"></div>
                 </div>
+
+                <!-- Streaks & Badges -->
+                <div class="card mt-3 p-3">
+                    <h6><i class="fas fa-fire me-1" style="color:#f97316;"></i>Streaks</h6>
+                    <div class="d-flex justify-content-around text-center mb-2">
+                        <div>
+                            <div style="font-size:2rem;font-weight:800;color:#f97316;" id="streak-current">0</div>
+                            <div class="stat-lbl">Current</div>
+                        </div>
+                        <div>
+                            <div style="font-size:2rem;font-weight:800;color:var(--utp-blue);" id="streak-longest">0</div>
+                            <div class="stat-lbl">Longest</div>
+                        </div>
+                        <div>
+                            <div style="font-size:2rem;font-weight:800;color:#10b981;" id="streak-total">0</div>
+                            <div class="stat-lbl">Total Logins</div>
+                        </div>
+                    </div>
+                    <div class="progress mb-2" style="height:6px;">
+                        <div class="progress-bar" id="streak-progress" style="background:linear-gradient(90deg,#f97316,#ef4444);width:0%;border-radius:6px;"></div>
+                    </div>
+                    <small class="text-muted" id="streak-next-text">Login tomorrow to keep it going!</small>
+                </div>
+
+                <div class="card mt-3 p-3">
+                    <h6><i class="fas fa-medal me-1" style="color:var(--utp-gold);"></i>Badges <span class="badge bg-secondary" id="badge-count">0</span></h6>
+                    <div id="badges-container" class="d-flex flex-wrap gap-2"></div>
+                </div>
             </div>
             <div class="col-md-7 mb-3">
                 <!-- Edit Profile -->
@@ -178,7 +206,7 @@
             const r=await fetch('/api/leaderboard');const data=await r.json();
             document.getElementById('leaderboard').innerHTML=data.slice(0,10).map(e=>`<div class="leaderboard-item ${e.is_me?'me-highlight':''}"><div class="rank-badge ${e.rank<=3?'rank-'+e.rank:'rank-other'}">${e.rank}</div><div class="flex-grow-1"><strong class="small">${e.name}</strong><br><small class="text-muted">${e.program} · Sem ${e.semester}</small></div><strong>${e.cgpa.toFixed(2)}</strong></div>`).join('')||'<small class="text-muted">No data yet</small>';
         }
-        loadProfile();loadCGPA();loadLeaderboard();
+        loadProfile();loadCGPA();loadLeaderboard();loadStreaks();loadBadges();
 
         async function doLogout() {
             await fetch('/api/auth/logout', {method: 'POST'});
@@ -197,6 +225,51 @@
 
         // Apply saved dark mode
         if (localStorage.getItem('darkMode') === 'true') document.body.classList.add('dark-mode');
+
+        // ===== Streaks & Badges =====
+        async function loadStreaks() {
+            try {
+                const r = await fetch('/api/streaks');
+                const d = await r.json();
+                document.getElementById('streak-current').textContent = d.current_streak || 0;
+                document.getElementById('streak-longest').textContent = d.longest_streak || 0;
+                document.getElementById('streak-total').textContent = d.total_logins || 0;
+
+                // Progress to next milestone
+                const milestones = [3, 7, 14, 30, 100];
+                const current = d.current_streak || 0;
+                let nextMilestone = milestones.find(m => m > current) || 100;
+                let prevMilestone = milestones.filter(m => m <= current).pop() || 0;
+                let progress = ((current - prevMilestone) / (nextMilestone - prevMilestone)) * 100;
+                document.getElementById('streak-progress').style.width = Math.min(progress, 100) + '%';
+
+                if (current > 0) {
+                    document.getElementById('streak-next-text').textContent = `🔥 ${nextMilestone - current} days to next badge!`;
+                } else {
+                    document.getElementById('streak-next-text').textContent = 'Login tomorrow to start a streak!';
+                }
+            } catch(e) { console.error('Streak load error:', e); }
+        }
+
+        async function loadBadges() {
+            try {
+                const r = await fetch('/api/badges');
+                const badges = await r.json();
+                const earned = badges.filter(b => b.earned);
+                document.getElementById('badge-count').textContent = `${earned.length}/${badges.length}`;
+
+                const container = document.getElementById('badges-container');
+                container.innerHTML = badges.map(b => `
+                    <div title="${b.name}: ${b.description}${b.earned ? ' ✓ Earned' : ''}" 
+                         style="width:50px;height:50px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;
+                         ${b.earned ? 'background:linear-gradient(135deg,#fef3c7,#fde68a);box-shadow:0 2px 8px rgba(255,184,28,0.3);' : 'background:#f3f4f6;opacity:0.4;filter:grayscale(1);'}
+                         cursor:pointer;transition:transform 0.2s;"
+                         onmouseenter="this.style.transform='scale(1.15)'" onmouseleave="this.style.transform='scale(1)'">
+                        ${b.icon}
+                    </div>
+                `).join('');
+            } catch(e) { console.error('Badge load error:', e); }
+        }
     </script>
 </body>
 </html>

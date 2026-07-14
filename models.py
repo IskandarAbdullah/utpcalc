@@ -416,6 +416,44 @@ class JournalEntry(db.Model):
         }
 
 
+class LoginStreak(db.Model):
+    __tablename__ = 'login_streaks'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    last_login_date = db.Column(db.Date, nullable=False)
+    current_streak = db.Column(db.Integer, nullable=False, default=1)
+    longest_streak = db.Column(db.Integer, nullable=False, default=1)
+    total_logins = db.Column(db.Integer, nullable=False, default=1)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'last_login_date': self.last_login_date.isoformat(),
+            'current_streak': self.current_streak,
+            'longest_streak': self.longest_streak,
+            'total_logins': self.total_logins
+        }
+
+
+class UserBadge(db.Model):
+    __tablename__ = 'user_badges'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    badge_id = db.Column(db.String(50), nullable=False)  # e.g. 'streak_7', 'gpa_dean'
+    earned_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'badge_id': self.badge_id,
+            'earned_at': self.earned_at.isoformat() if self.earned_at else None
+        }
+
+
 class TodoItem(db.Model):
     __tablename__ = 'todo_items'
 
