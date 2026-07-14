@@ -101,6 +101,18 @@
         /* Animations */
         .card { animation: fadeUp 0.4s ease; }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Mobile fixes */
+        @media (max-width: 768px) {
+            .container { padding-left: 8px; padding-right: 8px; }
+            .card-body { padding: 12px; }
+            .card-header { padding: 10px 12px; font-size: 0.8rem; }
+            .grade-badge { font-size: 0.9rem; padding: 4px 8px; }
+            .table { font-size: 0.75rem; }
+            .table td, .table th { padding: 4px 6px; }
+            .nav-tabs .nav-link { font-size: 0.75rem; padding: 6px 8px; }
+            .btn-sm { font-size: 0.75rem; padding: 4px 8px; }
+        }
     </style>
 </head>
 <body>
@@ -726,30 +738,31 @@
                                 <div class="fw-bold text-success">${c.total_mark}%</div>
                             </div>
                         </div>
+                        <div class="table-responsive">
                         <table class="table table-sm table-hover mb-2">
                             <thead>
                                 <tr>
                                     <th>Assessment</th>
-                                    <th>Category</th>
+                                    <th class="d-none d-md-table-cell">Category</th>
                                     <th>Score</th>
-                                    <th>Weightage</th>
-                                    <th>Weighted</th>
+                                    <th>Wt%</th>
+                                    <th class="d-none d-md-table-cell">Weighted</th>
                                     <th></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 ${c.assessments.map(a => `
                                 <tr class="assessment-row">
-                                    <td>${a.name}</td>
-                                    <td><span class="badge bg-info">${a.category}</span></td>
-                                    <td>${a.marks_obtained}/${a.total_marks} (${a.percentage_score}%)</td>
+                                    <td><span class="d-inline d-md-none badge bg-info me-1" style="font-size:0.6rem;">${a.category.substring(0,4)}</span>${a.name}</td>
+                                    <td class="d-none d-md-table-cell"><span class="badge bg-info">${a.category}</span></td>
+                                    <td>${a.marks_obtained}/${a.total_marks}</td>
                                     <td>${a.weightage}%</td>
-                                    <td><strong>${a.weighted_score}%</strong></td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline-primary me-1" onclick="showEditAssessmentModal(${a.id}, '${a.name.replace(/'/g, "\\'")}', '${a.category}', ${a.marks_obtained}, ${a.total_marks}, ${a.weightage})">
+                                    <td class="d-none d-md-table-cell"><strong>${a.weighted_score}%</strong></td>
+                                    <td style="white-space:nowrap;">
+                                        <button class="btn btn-sm btn-outline-primary p-0 px-1" onclick="showEditAssessmentModal(${a.id}, '${a.name.replace(/'/g, "\\'")}', '${a.category}', ${a.marks_obtained}, ${a.total_marks}, ${a.weightage})">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteAssessment(${a.id})">
+                                        <button class="btn btn-sm btn-outline-danger p-0 px-1" onclick="deleteAssessment(${a.id})">
                                             <i class="fas fa-times"></i>
                                         </button>
                                     </td>
@@ -757,6 +770,7 @@
                                 `).join('')}
                             </tbody>
                         </table>
+                        </div>
                         <button class="btn btn-sm btn-gold" onclick="showAddAssessmentModal(${c.id})">
                             <i class="fas fa-plus me-1"></i> Add Assessment
                         </button>
