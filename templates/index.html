@@ -195,9 +195,40 @@
                                 </div>
                             </div>
                             <div class="card-body">
-                                <div id="no-semester-selected" class="text-center text-muted py-4">
-                                    <i class="fas fa-arrow-left fa-2x mb-2"></i>
-                                    <p>Select a semester to view courses</p>
+                                <div id="no-semester-selected" class="py-3">
+                                    <div class="row g-3">
+                                        <!-- Quick Stats -->
+                                        <div class="col-6">
+                                            <div class="text-center p-3" style="background:linear-gradient(135deg,#003366,#004080);border-radius:12px;color:white;">
+                                                <div style="font-size:2rem;font-weight:800;" id="dash-cgpa">0.00</div>
+                                                <small style="opacity:0.8;">Current CGPA</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="text-center p-3" style="background:linear-gradient(135deg,#FFB81C,#ffc94d);border-radius:12px;color:#003366;">
+                                                <div style="font-size:2rem;font-weight:800;" id="dash-todos">0</div>
+                                                <small>Pending Tasks</small>
+                                            </div>
+                                        </div>
+                                        <!-- Today's Classes -->
+                                        <div class="col-12">
+                                            <div class="p-3" style="background:rgba(255,255,255,0.05);border-radius:12px;border:1px solid rgba(255,255,255,0.1);">
+                                                <small class="fw-bold"><i class="fas fa-clock me-1"></i>Today's Classes</small>
+                                                <div id="dash-classes" class="mt-2"><small class="text-muted">No classes today</small></div>
+                                            </div>
+                                        </div>
+                                        <!-- Upcoming Events -->
+                                        <div class="col-12">
+                                            <div class="p-3" style="background:rgba(255,255,255,0.05);border-radius:12px;border:1px solid rgba(255,255,255,0.1);">
+                                                <small class="fw-bold"><i class="fas fa-calendar me-1"></i>Upcoming Events</small>
+                                                <div id="dash-events" class="mt-2"><small class="text-muted">No upcoming events</small></div>
+                                            </div>
+                                        </div>
+                                        <!-- Quick Action -->
+                                        <div class="col-12 text-center">
+                                            <small class="text-muted"><i class="fas fa-arrow-left me-1"></i>Select a semester to manage marks</small>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div id="courses-container" style="display:none;"></div>
                             </div>
@@ -1486,6 +1517,48 @@
             });
         }
 
+        // ============ DASHBOARD ============
+        async function loadDashboard() {
+            try {
+                // CGPA
+                const cgpaRes = await fetch('/api/cgpa');
+                if (cgpaRes.ok) {
+                    const cgpa = await cgpaRes.json();
+                    document.getElementById('dash-cgpa').textContent = cgpa.cgpa.toFixed(2);
+                }
+                // Todos
+                const todoRes = await fetch('/api/todos');
+                if (todoRes.ok) {
+                    const todos = await todoRes.json();
+                    document.getElementById('dash-todos').textContent = todos.filter(t => !t.done).length;
+                }
+                // Today's classes from timetable
+                const ttRes = await fetch('/api/timetable');
+                if (ttRes.ok) {
+                    const timetable = await ttRes.json();
+                    const dayNames = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+                    const today = dayNames[new Date().getDay()];
+                    const todayClasses = timetable.filter(t => t.day === today).sort((a,b) => a.start_time.localeCompare(b.start_time));
+                    const el = document.getElementById('dash-classes');
+                    if (todayClasses.length > 0) {
+                        el.innerHTML = todayClasses.map(c => `<div class="d-flex justify-content-between small mb-1"><span>${c.course_code}</span><span class="text-muted">${c.start_time}-${c.end_time}</span></div>`).join('');
+                    }
+                }
+                // Upcoming events
+                const now = new Date();
+                const evRes = await fetch(`/api/calendar/events?month=${now.getMonth()+1}&year=${now.getFullYear()}`);
+                if (evRes.ok) {
+                    const events = await evRes.json();
+                    const today = now.toISOString().split('T')[0];
+                    const upcoming = events.filter(e => e.date >= today).sort((a,b) => a.date.localeCompare(b.date)).slice(0, 3);
+                    const el = document.getElementById('dash-events');
+                    if (upcoming.length > 0) {
+                        el.innerHTML = upcoming.map(e => `<div class="d-flex justify-content-between small mb-1"><span>${e.title}</span><span class="text-muted">${e.date}</span></div>`).join('');
+                    }
+                }
+            } catch(e) { console.log('Dashboard load error:', e); }
+        }
+
         // ============ INIT ============
         async function doLogout() {
             await fetch('/api/auth/logout', {method: 'POST'});
@@ -1504,6 +1577,7 @@
         loadSemesters();
         loadMainTodos();
         populateFcCourse();
+        loadDashboard();
     </script>
     <script>
         if ('serviceWorker' in navigator) {
