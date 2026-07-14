@@ -2,7 +2,7 @@
 body.dark-mode { background: #1a1a2e !important; color: #e0e0e0 !important; }
 body.dark-mode .card { background: #16213e !important; color: #e0e0e0 !important; box-shadow: 0 4px 20px rgba(0,0,0,0.2) !important; }
 body.dark-mode .card-header { background: #0f1a2e !important; color: #e0e0e0 !important; }
-body.dark-mode .form-control, body.dark-mode .form-select, body.dark-mode textarea { background: #1e293b !important; color: #e0e0e0 !important; border-color: #374151 !important; }
+body.dark-mode .form-control, body.dark-mode .form-select, body.dark-mode textarea, body.dark-mode input[type="text"], body.dark-mode input[type="number"], body.dark-mode input[type="date"], body.dark-mode input[type="time"], body.dark-mode input[type="month"], body.dark-mode input[type="file"], body.dark-mode input[type="password"] { background: #1e293b !important; color: #e0e0e0 !important; border-color: #374151 !important; }
 body.dark-mode .table { color: #e0e0e0 !important; }
 body.dark-mode .table th { background: #1e293b !important; color: #e0e0e0 !important; }
 body.dark-mode .table td { border-color: #374151 !important; }
@@ -10,21 +10,21 @@ body.dark-mode .nav-tabs { background: #16213e !important; }
 body.dark-mode .nav-tabs .nav-link { color: #9ca3af !important; }
 body.dark-mode .nav-tabs .nav-link.active { background: #003366 !important; color: white !important; }
 body.dark-mode .modal-content { background: #16213e !important; color: #e0e0e0 !important; }
+body.dark-mode .modal-header, body.dark-mode .modal-footer { border-color: #374151 !important; }
 body.dark-mode .text-muted { color: #9ca3af !important; }
-body.dark-mode .navbar { background: linear-gradient(135deg, #0f172a, #1e293b) !important; }
-body.dark-mode .post-card, body.dark-mode .note-card, body.dark-mode .todo-item, body.dark-mode .timeline-card, body.dark-mode .quiz-question, body.dark-mode .attendance-card, body.dark-mode .event-list-item { background: #16213e !important; color: #e0e0e0 !important; }
+body.dark-mode .navbar { background: linear-gradient(-45deg, #0f172a, #1e293b, #0f172a, #1e293b) !important; background-size: 300% 300% !important; animation: navGradient 8s ease infinite !important; }
+body.dark-mode .post-card, body.dark-mode .note-card, body.dark-mode .timeline-card, body.dark-mode .quiz-question, body.dark-mode .attendance-card, body.dark-mode .event-list-item, body.dark-mode .review-card { background: #16213e !important; color: #e0e0e0 !important; }
 body.dark-mode .ai-chat-box { background: #0f172a !important; }
 body.dark-mode .ai-message { background: #1e293b !important; color: #e0e0e0 !important; }
 body.dark-mode input::placeholder, body.dark-mode textarea::placeholder { color: #6b7280 !important; }
 body.dark-mode .calendar-day { background: #1e293b !important; border-color: #374151 !important; }
 body.dark-mode .calendar-day.today { background: #2d2200 !important; }
 body.dark-mode .day-number { color: #e0e0e0 !important; }
-body.dark-mode .summary-card { background: #16213e !important; }
+body.dark-mode .summary-card { background: #16213e !important; color: #e0e0e0 !important; }
 body.dark-mode .flashcard-front { background: linear-gradient(135deg, #1e293b, #0f172a) !important; }
 body.dark-mode hr { border-color: #374151 !important; }
 body.dark-mode .create-post { background: #16213e !important; }
 body.dark-mode .create-post textarea { background: #1e293b !important; color: #e0e0e0 !important; }
-body.dark-mode .post-header { background: transparent !important; }
 body.dark-mode .post-caption { color: #e0e0e0 !important; }
 body.dark-mode .post-actions { border-color: #374151 !important; }
 body.dark-mode .post-action { color: #9ca3af !important; }
@@ -33,12 +33,37 @@ body.dark-mode .comment-input { border-color: #374151 !important; }
 body.dark-mode .comment-input input { background: #1e293b !important; color: #e0e0e0 !important; border-color: #374151 !important; }
 body.dark-mode .outline-card { background: #16213e !important; }
 body.dark-mode .text-preview { background: #1e293b !important; color: #9ca3af !important; border-color: #374151 !important; }
-body.dark-mode .btn-outline-primary, body.dark-mode .btn-outline-warning, body.dark-mode .btn-outline-secondary, body.dark-mode .btn-outline-info, body.dark-mode .btn-outline-success { color: #e0e0e0 !important; border-color: #4b5563 !important; }
+body.dark-mode .btn-outline-primary, body.dark-mode .btn-outline-warning, body.dark-mode .btn-outline-secondary, body.dark-mode .btn-outline-info, body.dark-mode .btn-outline-success, body.dark-mode .btn-outline-dark { color: #e0e0e0 !important; border-color: #4b5563 !important; }
 body.dark-mode .container { color: #e0e0e0 !important; }
-body.dark-mode h6, body.dark-mode h5, body.dark-mode strong, body.dark-mode label { color: #e0e0e0 !important; }
+body.dark-mode h6, body.dark-mode h5, body.dark-mode strong, body.dark-mode label, body.dark-mode .small { color: #e0e0e0 !important; }
 body.dark-mode .badge.bg-primary { background: #1e40af !important; }
 body.dark-mode .badge.bg-info { background: #1e40af !important; }
 body.dark-mode .badge.bg-secondary { background: #374151 !important; }
 body.dark-mode p { color: #d1d5db !important; }
+/* Chat page */
+body.dark-mode .chat-sidebar { background: #16213e !important; border-color: #374151 !important; }
+body.dark-mode .chat-main { background: #1a1a2e !important; }
+body.dark-mode .chat-header { background: #16213e !important; color: #e0e0e0 !important; border-color: #374151 !important; }
+body.dark-mode .chat-messages { background: #0f172a !important; }
+body.dark-mode .chat-input { background: #16213e !important; border-color: #374151 !important; }
+body.dark-mode .chat-input input { background: #1e293b !important; color: #e0e0e0 !important; border-color: #374151 !important; }
+body.dark-mode .room-item { border-color: #374151 !important; color: #e0e0e0 !important; }
+body.dark-mode .room-item:hover, body.dark-mode .room-item.active { background: #1e293b !important; }
+body.dark-mode .room-code { color: var(--utp-gold) !important; }
+body.dark-mode .room-name { color: #9ca3af !important; }
+body.dark-mode .msg-other { background: #1e293b !important; color: #e0e0e0 !important; }
+body.dark-mode .no-room { color: #6b7280 !important; }
+/* To-do items */
+body.dark-mode .todo-item, body.dark-mode [style*="background:white"], body.dark-mode [style*="background: white"] { background: #1e293b !important; color: #e0e0e0 !important; }
+body.dark-mode div[style*="background:#f8f9fb"], body.dark-mode div[style*="background:#f9fafb"] { background: #1e293b !important; }
+/* Sem rows and course nodes in prereq */
+body.dark-mode .sem-row { background: #16213e !important; }
+body.dark-mode .course-node { color: #e0e0e0 !important; }
+body.dark-mode .prereq-info { background: #16213e !important; color: #e0e0e0 !important; }
+/* Profile leaderboard */
+body.dark-mode .leaderboard-item { border-color: #374151 !important; }
+body.dark-mode .me-highlight { background: #1e293b !important; }
+/* General white bg divs */
+body.dark-mode .d-flex[style*="background:white"] { background: #1e293b !important; }
 </style>
 <script>if(localStorage.getItem('darkMode')==='true')document.body.classList.add('dark-mode');</script>
