@@ -123,7 +123,7 @@
         <ul class="nav nav-tabs" id="mainTabs" role="tablist">
             <li class="nav-item">
                 <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#marks-tab">
-                    <i class="fas fa-calculator me-1"></i> Marks & Carry
+                    <i class="fas fa-calculator me-1"></i> Marks
                 </button>
             </li>
             <li class="nav-item">
@@ -132,8 +132,13 @@
                 </button>
             </li>
             <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#todo-tab">
+                    <i class="fas fa-tasks me-1"></i> To-Do
+                </button>
+            </li>
+            <li class="nav-item">
                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#ai-tab">
-                    <i class="fas fa-robot me-1"></i> AI Advisor
+                    <i class="fas fa-robot me-1"></i> AI
                 </button>
             </li>
         </ul>
@@ -206,6 +211,28 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+            <!-- TO-DO TAB -->
+            <div class="tab-pane fade" id="todo-tab">
+                <div class="card">
+                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-tasks me-1"></i> To-Do List</span>
+                        <span class="badge bg-light text-dark" id="todo-count">0</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex gap-2 mb-3">
+                            <input type="text" id="main-todo-input" class="form-control form-control-sm" placeholder="Add a task..." onkeypress="if(event.key==='Enter')addMainTodo()">
+                            <select id="main-todo-priority" class="form-select form-select-sm" style="width:auto;">
+                                <option value="medium">⚡ Med</option>
+                                <option value="high">🔴 High</option>
+                                <option value="low">🟢 Low</option>
+                            </select>
+                            <input type="date" id="main-todo-due" class="form-control form-control-sm" style="width:auto;">
+                            <button class="btn btn-utp btn-sm" onclick="addMainTodo()"><i class="fas fa-plus"></i></button>
+                        </div>
+                        <div id="main-todo-list"></div>
                     </div>
                 </div>
             </div>
@@ -1285,6 +1312,42 @@
             return 'grade-f';
         }
 
+        // ============ TO-DO FUNCTIONS ============
+        async function loadMainTodos() {
+            const r = await fetch('/api/todos');
+            const todos = await r.json();
+            document.getElementById('todo-count').textContent = todos.filter(t => !t.done).length;
+            document.getElementById('main-todo-list').innerHTML = todos.map(t => `
+                <div class="d-flex align-items-center gap-2 p-2 mb-1" style="background:${t.done?'#f9fafb':'white'};border-radius:8px;border-left:3px solid ${t.priority==='high'?'#ef4444':t.priority==='low'?'#22c55e':'#FFB81C'};${t.done?'opacity:0.5':''}">
+                    <input type="checkbox" ${t.done?'checked':''} onchange="toggleMainTodo(${t.id},this.checked)" style="cursor:pointer;">
+                    <span class="flex-grow-1 small" style="${t.done?'text-decoration:line-through':''}">${t.text}</span>
+                    ${t.due_date?`<small class="text-muted">${t.due_date}</small>`:''}
+                    <button class="btn btn-sm p-0 px-1 text-danger" onclick="deleteMainTodo(${t.id})"><i class="fas fa-times"></i></button>
+                </div>
+            `).join('') || '<p class="text-muted text-center small">No tasks. Add one above!</p>';
+        }
+
+        async function addMainTodo() {
+            const text = document.getElementById('main-todo-input').value.trim();
+            if (!text) return;
+            const priority = document.getElementById('main-todo-priority').value;
+            const due_date = document.getElementById('main-todo-due').value || null;
+            await fetch('/api/todos', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text, priority, due_date})});
+            document.getElementById('main-todo-input').value = '';
+            document.getElementById('main-todo-due').value = '';
+            loadMainTodos();
+        }
+
+        async function toggleMainTodo(id, done) {
+            await fetch(`/api/todos/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({done})});
+            loadMainTodos();
+        }
+
+        async function deleteMainTodo(id) {
+            await fetch(`/api/todos/${id}`, {method:'DELETE'});
+            loadMainTodos();
+        }
+
         // ============ INIT ============
         async function doLogout() {
             await fetch('/api/auth/logout', {method: 'POST'});
@@ -1301,6 +1364,7 @@
 
         loadUser();
         loadSemesters();
+        loadMainTodos();
     </script>
     <script>
         if ('serviceWorker' in navigator) {
