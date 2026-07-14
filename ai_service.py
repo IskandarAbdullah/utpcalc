@@ -20,7 +20,7 @@ def _chat_gemini(messages, use_vision=False):
 
     client = genai.Client(api_key=Config.GEMINI_API_KEY)
 
-    # Build contents for Gemini
+    # Separate system instruction from contents
     system_text = None
     contents = []
 
@@ -39,6 +39,7 @@ def _chat_gemini(messages, use_vision=False):
         role = 'user' if msg['role'] == 'user' else 'model'
         contents.append(types.Content(role=role, parts=parts))
 
+    # Build config with system instruction
     config = types.GenerateContentConfig(
         temperature=0.7,
         max_output_tokens=2048,
