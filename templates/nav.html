@@ -49,11 +49,19 @@ body.dark-mode a { color: var(--utp-gold); }
     left: 0;
     right: 0;
     height: var(--nav-height);
-    background: linear-gradient(135deg, var(--utp-blue) 0%, var(--utp-blue-light) 100%);
+    background: linear-gradient(-45deg, #003366, #004080, #0066cc, #003366, #001a33);
+    background-size: 300% 300%;
+    animation: navGradient 8s ease infinite;
     padding: 0 2rem;
     z-index: 1000;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     font-family: 'Inter', sans-serif;
+}
+
+@keyframes navGradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 
 .desktop-nav .nav-logo {
@@ -102,9 +110,11 @@ body.dark-mode a { color: var(--utp-gold); }
     left: 0;
     right: 0;
     height: var(--bottom-nav-height);
-    background: linear-gradient(135deg, var(--utp-blue) 0%, var(--utp-blue-light) 100%);
+    background: linear-gradient(-45deg, #003366, #004080, #0066cc, #003366, #001a33);
+    background-size: 300% 300%;
+    animation: navGradient 8s ease infinite;
     z-index: 1000;
-    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
     font-family: 'Inter', sans-serif;
 }
 
