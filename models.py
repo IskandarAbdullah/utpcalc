@@ -436,3 +436,24 @@ class TodoItem(db.Model):
             'due_date': self.due_date.isoformat() if self.due_date else None,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
+
+
+class ChatMessage(db.Model):
+    __tablename__ = 'chat_messages'
+
+    id = db.Column(db.Integer, primary_key=True)
+    course_code = db.Column(db.String(20), nullable=False)  # chat room = course
+    text = db.Column(db.Text, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        user = User.query.get(self.user_id)
+        return {
+            'id': self.id,
+            'course_code': self.course_code,
+            'text': self.text,
+            'username': user.full_name if user else 'Unknown',
+            'user_id': self.user_id,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }

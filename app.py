@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, render_template, session, redirect, u
 from flask_cors import CORS
 from functools import wraps
 from config import Config
-from models import db, User, Semester, Course, Assessment, CalendarEvent, CourseOutline, Post, PostLike, PostComment, Attendance, CourseReview, Timetable, LectureNote, JournalEntry, TodoItem
+from models import db, User, Semester, Course, Assessment, CalendarEvent, CourseOutline, Post, PostLike, PostComment, Attendance, CourseReview, Timetable, LectureNote, JournalEntry, TodoItem, ChatMessage
 from ai_service import get_ai_response, analyze_performance, predict_grade, get_study_tips, extract_pdf_text, parse_assessments_from_pdf, ai_edit_assessments, ai_parse_calendar_events, ai_parse_pdf_calendar, ai_read_image, _chat
 import re
 from course_catalog import UTP_PROGRAMS
@@ -119,6 +119,13 @@ def prereq_page():
     return render_template('prereq.html')
 
 
+@app.route('/chat')
+def chat_page():
+    if 'user_id' not in session:
+        return redirect(url_for('login_page'))
+    return render_template('chat.html')
+
+
 @app.route('/journey')
 def journey_page():
     if 'user_id' not in session:
@@ -219,6 +226,54 @@ def logout():
 def get_me():
     user = get_current_user()
     return jsonify(user.to_dict())
+
+
+# ============ CHAT ROUTES ============
+
+@app.route('/api/chat/messages', methods=['GET'])
+@login_required
+def get_chat_messages():
+    course_code = request.args.get('course_code', '')
+    if not course_code:
+        return jsonify({'error': 'course_code required'}), 400
+    messages = ChatMessage.query.filter_by(course_code=course_code).order_by(ChatMessage.created_at.desc()).limit(100).all()
+    return jsonify([m.to_dict() for m in reversed(messages)])
+
+
+@app.route('/api/chat/messages', methods=['POST'])
+@login_required
+def send_chat_message():
+    user = get_current_user()
+    data = request.get_json()
+    if not data or not data.get('course_code') or not data.get('text'):
+        return jsonify({'error': 'course_code and text required'}), 400
+
+    msg = ChatMessage(
+        course_code=data['course_code'],
+        text=data['text'],
+        user_id=user.id
+    )
+    db.session.add(msg)
+    db.session.commit()
+    return jsonify(msg.to_dict()), 201
+
+
+@app.route('/api/chat/rooms', methods=['GET'])
+@login_required
+def get_chat_rooms():
+    """Get courses the user is enrolled in as chat rooms."""
+    user = get_current_user()
+    semesters = Semester.query.filter_by(user_id=user.id).all()
+    rooms = []
+    for sem in semesters:
+        for course in sem.courses:
+            # Count unread (last 24h messages)
+            from datetime import datetime, timedelta
+            recent = ChatMessage.query.filter_by(course_code=course.code).filter(
+                ChatMessage.created_at > datetime.utcnow() - timedelta(hours=24)
+            ).count()
+            rooms.append({'code': course.code, 'name': course.name, 'recent_messages': recent})
+    return jsonify(rooms)
 
 
 # ============ PREREQUISITE ROUTES ============
