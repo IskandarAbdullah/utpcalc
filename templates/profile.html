@@ -100,10 +100,15 @@
                     <h6><i class="fas fa-link me-1"></i>Quick Links</h6>
                     <a href="/attendance" class="btn btn-outline-primary btn-sm w-100 mb-2"><i class="fas fa-clipboard-check me-1"></i>Attendance Tracker</a>
                     <a href="/notes" class="btn btn-outline-info btn-sm w-100 mb-2"><i class="fas fa-book me-1"></i>Lecture Notes & Quiz</a>
+                    <a href="/journey" class="btn btn-outline-purple btn-sm w-100 mb-2" style="border-color:#8b5cf6;color:#8b5cf6;"><i class="fas fa-road me-1"></i>My Journey & To-Do</a>
                     <a href="/reviews" class="btn btn-outline-warning btn-sm w-100 mb-2"><i class="fas fa-star me-1"></i>Course Reviews</a>
                     <a href="/outlines" class="btn btn-outline-secondary btn-sm w-100 mb-2"><i class="fas fa-file-pdf me-1"></i>Course Outlines</a>
                     <a href="/admin" class="btn btn-outline-danger btn-sm w-100 mb-2" id="admin-link" style="display:none;"><i class="fas fa-shield-halved me-1"></i>Admin Panel</a>
                     <hr>
+                    <div class="d-flex gap-2 mb-2">
+                        <button class="btn btn-outline-dark btn-sm flex-grow-1" onclick="toggleDarkMode(false)"><i class="fas fa-sun me-1"></i>Light</button>
+                        <button class="btn btn-dark btn-sm flex-grow-1" onclick="toggleDarkMode(true)"><i class="fas fa-moon me-1"></i>Dark</button>
+                    </div>
                     <button class="btn btn-danger btn-sm w-100" onclick="doLogout()"><i class="fas fa-sign-out-alt me-1"></i>Logout</button>
                 </div>
             </div>
@@ -177,6 +182,21 @@
             await fetch('/api/auth/logout', {method: 'POST'});
             window.location.href = '/login';
         }
+
+        function toggleDarkMode(dark) {
+            document.body.style.background = dark ? '#1a1a2e' : '#f0f2f5';
+            document.body.style.color = dark ? '#e0e0e0' : '#1f2937';
+            document.querySelectorAll('.card').forEach(c => {
+                c.style.background = dark ? '#16213e' : 'white';
+                c.style.color = dark ? '#e0e0e0' : '#1f2937';
+            });
+            // Save preference
+            fetch('/api/profile', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({dark_mode: dark})});
+            localStorage.setItem('darkMode', dark);
+        }
+
+        // Apply saved dark mode
+        if (localStorage.getItem('darkMode') === 'true') toggleDarkMode(true);
     </script>
 </body>
 </html>

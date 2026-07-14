@@ -394,3 +394,47 @@ class LectureNote(db.Model):
             'week_number': self.week_number,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
+
+
+class JournalEntry(db.Model):
+    __tablename__ = 'journal_entries'
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text, nullable=True)
+    entry_type = db.Column(db.String(20), nullable=False, default='milestone')  # milestone, achievement, memory, goal
+    date = db.Column(db.Date, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'content': self.content,
+            'entry_type': self.entry_type,
+            'date': self.date.isoformat(),
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+
+class TodoItem(db.Model):
+    __tablename__ = 'todo_items'
+
+    id = db.Column(db.Integer, primary_key=True)
+    text = db.Column(db.String(300), nullable=False)
+    done = db.Column(db.Boolean, nullable=False, default=False)
+    priority = db.Column(db.String(10), nullable=False, default='medium')  # low, medium, high
+    due_date = db.Column(db.Date, nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'text': self.text,
+            'done': self.done,
+            'priority': self.priority,
+            'due_date': self.due_date.isoformat() if self.due_date else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }

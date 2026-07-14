@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UTP Marks - My Journey</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root{--utp-blue:#003366;--utp-gold:#FFB81C;--bg:#f0f2f5}
+        body{background:var(--bg);font-family:'Inter',sans-serif;padding-bottom:80px}
+        .navbar{background:linear-gradient(135deg,var(--utp-blue),#004080);padding:12px 0;box-shadow:0 4px 20px rgba(0,51,102,0.2)}
+        .navbar-brand{color:var(--utp-gold)!important;font-weight:700}
+        .nav-link{color:rgba(255,255,255,0.7)!important;font-size:0.85rem}.nav-link:hover,.nav-link.active{color:var(--utp-gold)!important}
+        .card{border:none;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.06)}
+        .form-control,.form-select{border-radius:10px;border:2px solid #e5e7eb;font-size:0.85rem}
+        .form-control:focus,.form-select:focus{border-color:var(--utp-gold);box-shadow:0 0 0 3px rgba(255,184,28,0.1)}
+        .btn-utp{background:linear-gradient(135deg,var(--utp-blue),#004080);color:white;border:none;border-radius:10px;font-weight:600}
+        .btn-utp:hover{color:white;transform:translateY(-1px)}
+        .btn-gold{background:linear-gradient(135deg,var(--utp-gold),#ffc94d);color:var(--utp-blue);border:none;border-radius:10px;font-weight:600}
+
+        /* Timeline */
+        .timeline{position:relative;padding-left:30px}
+        .timeline::before{content:'';position:absolute;left:12px;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--utp-gold),var(--utp-blue))}
+        .timeline-item{position:relative;margin-bottom:20px;animation:fadeUp 0.4s ease}
+        .timeline-dot{position:absolute;left:-24px;top:6px;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px var(--utp-blue)}
+        .dot-milestone{background:var(--utp-gold)}
+        .dot-achievement{background:#22c55e}
+        .dot-memory{background:#8b5cf6}
+        .dot-goal{background:#ef4444}
+        .timeline-card{background:white;border-radius:12px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,0.04)}
+        .timeline-date{font-size:0.7rem;color:#9ca3af;font-weight:500}
+
+        /* Todo */
+        .todo-item{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;margin-bottom:6px;background:white;box-shadow:0 1px 4px rgba(0,0,0,0.03);transition:all 0.2s}
+        .todo-item.done{opacity:0.5}
+        .todo-item.done .todo-text{text-decoration:line-through}
+        .todo-check{width:20px;height:20px;border-radius:50%;border:2px solid #d1d5db;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;flex-shrink:0}
+        .todo-check.checked{background:var(--utp-blue);border-color:var(--utp-blue);color:white}
+        .todo-text{flex:1;font-size:0.85rem}
+        .priority-high{border-left:3px solid #ef4444}
+        .priority-medium{border-left:3px solid var(--utp-gold)}
+        .priority-low{border-left:3px solid #22c55e}
+
+        @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark mb-3">
+        <div class="container"><a class="navbar-brand" href="/"><i class="fas fa-graduation-cap me-1"></i>UTP Marks</a>
+            <div class="d-flex gap-3"><a class="nav-link" href="/">Marks</a><a class="nav-link" href="/calendar">Calendar</a><a class="nav-link active" href="/journey">Journey</a><a class="nav-link" href="/profile">Profile</a></div>
+        </div>
+    </nav>
+
+    <div class="container" style="max-width:900px;">
+        <div class="row">
+            <!-- To-Do List -->
+            <div class="col-md-5 mb-3">
+                <div class="card p-3 mb-3">
+                    <h6><i class="fas fa-tasks me-1"></i>To-Do List</h6>
+                    <div class="d-flex gap-2 mb-2">
+                        <input type="text" id="todo-input" class="form-control form-control-sm" placeholder="Add a task..." onkeypress="if(event.key==='Enter')addTodo()">
+                        <select id="todo-priority" class="form-select form-select-sm" style="width:auto;">
+                            <option value="medium">⚡</option>
+                            <option value="high">🔴</option>
+                            <option value="low">🟢</option>
+                        </select>
+                        <button class="btn btn-utp btn-sm" onclick="addTodo()"><i class="fas fa-plus"></i></button>
+                    </div>
+                    <div id="todo-list"></div>
+                </div>
+
+                <!-- Add Journey Entry -->
+                <div class="card p-3">
+                    <h6><i class="fas fa-plus-circle me-1"></i>Add Life Event</h6>
+                    <div class="mb-2"><input type="text" id="j-title" class="form-control form-control-sm" placeholder="What happened?"></div>
+                    <div class="mb-2"><textarea id="j-content" class="form-control form-control-sm" rows="2" placeholder="Details (optional)"></textarea></div>
+                    <div class="row g-2 mb-2">
+                        <div class="col"><input type="date" id="j-date" class="form-control form-control-sm"></div>
+                        <div class="col"><select id="j-type" class="form-select form-select-sm">
+                            <option value="milestone">🎯 Milestone</option>
+                            <option value="achievement">🏆 Achievement</option>
+                            <option value="memory">💜 Memory</option>
+                            <option value="goal">🎯 Goal</option>
+                        </select></div>
+                    </div>
+                    <button class="btn btn-gold btn-sm w-100" onclick="addJournal()"><i class="fas fa-plus me-1"></i>Add to Timeline</button>
+                </div>
+            </div>
+
+            <!-- Timeline -->
+            <div class="col-md-7">
+                <h6><i class="fas fa-road me-1"></i>My Journey</h6>
+                <div class="timeline" id="timeline"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('j-date').value = new Date().toISOString().split('T')[0];
+
+        // === TODOS ===
+        async function loadTodos() {
+            const r = await fetch('/api/todos');
+            const todos = await r.json();
+            document.getElementById('todo-list').innerHTML = todos.map(t => `
+                <div class="todo-item ${t.done?'done':''} priority-${t.priority}">
+                    <div class="todo-check ${t.done?'checked':''}" onclick="toggleTodo(${t.id},${!t.done})">
+                        ${t.done?'<i class="fas fa-check" style="font-size:0.6rem"></i>':''}
+                    </div>
+                    <span class="todo-text">${t.text}</span>
+                    ${t.due_date?`<small class="text-muted">${t.due_date}</small>`:''}
+                    <button class="btn btn-sm p-0 px-1 text-danger" onclick="deleteTodo(${t.id})"><i class="fas fa-times"></i></button>
+                </div>
+            `).join('') || '<small class="text-muted">No tasks yet</small>';
+        }
+
+        async function addTodo() {
+            const text = document.getElementById('todo-input').value.trim();
+            if (!text) return;
+            const priority = document.getElementById('todo-priority').value;
+            await fetch('/api/todos', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text, priority})});
+            document.getElementById('todo-input').value = '';
+            loadTodos();
+        }
+
+        async function toggleTodo(id, done) {
+            await fetch(`/api/todos/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({done})});
+            loadTodos();
+        }
+
+        async function deleteTodo(id) {
+            await fetch(`/api/todos/${id}`, {method:'DELETE'});
+            loadTodos();
+        }
+
+        // === JOURNAL ===
+        async function loadJournal() {
+            const r = await fetch('/api/journal');
+            const entries = await r.json();
+            const el = document.getElementById('timeline');
+            if (!entries.length) { el.innerHTML = '<p class="text-muted text-center small">Your journey starts here. Add your first life event!</p>'; return; }
+            el.innerHTML = entries.map(e => `
+                <div class="timeline-item">
+                    <div class="timeline-dot dot-${e.entry_type}"></div>
+                    <div class="timeline-card">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong class="small">${e.title}</strong>
+                                <span class="timeline-date ms-2">${e.date}</span>
+                            </div>
+                            <button class="btn btn-sm p-0 px-1 text-danger" onclick="deleteJournal(${e.id})"><i class="fas fa-times"></i></button>
+                        </div>
+                        ${e.content ? `<p class="small text-muted mb-0 mt-1">${e.content}</p>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function addJournal() {
+            const title = document.getElementById('j-title').value.trim();
+            const date = document.getElementById('j-date').value;
+            if (!title || !date) return alert('Enter title and date');
+            await fetch('/api/journal', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
+                title, content: document.getElementById('j-content').value.trim(),
+                entry_type: document.getElementById('j-type').value, date
+            })});
+            document.getElementById('j-title').value = '';
+            document.getElementById('j-content').value = '';
+            loadJournal();
+        }
+
+        async function deleteJournal(id) {
+            if (!confirm('Delete this entry?')) return;
+            await fetch(`/api/journal/${id}`, {method:'DELETE'});
+            loadJournal();
+        }
+
+        loadTodos(); loadJournal();
+    </script>
+</body>
+</html>

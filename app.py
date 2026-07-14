@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, render_template, session, redirect, u
 from flask_cors import CORS
 from functools import wraps
 from config import Config
-from models import db, User, Semester, Course, Assessment, CalendarEvent, CourseOutline, Post, PostLike, PostComment, Attendance, CourseReview, Timetable, LectureNote
+from models import db, User, Semester, Course, Assessment, CalendarEvent, CourseOutline, Post, PostLike, PostComment, Attendance, CourseReview, Timetable, LectureNote, JournalEntry, TodoItem
 from ai_service import get_ai_response, analyze_performance, predict_grade, get_study_tips, extract_pdf_text, parse_assessments_from_pdf, ai_edit_assessments, ai_parse_calendar_events, ai_parse_pdf_calendar, ai_read_image, _chat
 import re
 from course_catalog import UTP_PROGRAMS
@@ -109,6 +109,13 @@ def notes_page():
     if 'user_id' not in session:
         return redirect(url_for('login_page'))
     return render_template('notes.html')
+
+
+@app.route('/journey')
+def journey_page():
+    if 'user_id' not in session:
+        return redirect(url_for('login_page'))
+    return render_template('journey.html')
 
 
 # ============ AUTH ROUTES ============
@@ -1148,6 +1155,98 @@ def get_leaderboard():
     for i, e in enumerate(entries):
         e['rank'] = i + 1
     return jsonify(entries)
+
+
+# ============ JOURNEY & TODO ROUTES ============
+
+@app.route('/api/journal', methods=['GET'])
+@login_required
+def get_journal():
+    user = get_current_user()
+    entries = JournalEntry.query.filter_by(user_id=user.id).order_by(JournalEntry.date.desc()).all()
+    return jsonify([e.to_dict() for e in entries])
+
+
+@app.route('/api/journal', methods=['POST'])
+@login_required
+def add_journal():
+    user = get_current_user()
+    data = request.get_json()
+    if not data or not data.get('title') or not data.get('date'):
+        return jsonify({'error': 'title and date required'}), 400
+
+    from datetime import date as date_type
+    entry = JournalEntry(
+        title=data['title'],
+        content=data.get('content', ''),
+        entry_type=data.get('entry_type', 'milestone'),
+        date=date_type.fromisoformat(data['date']),
+        user_id=user.id
+    )
+    db.session.add(entry)
+    db.session.commit()
+    return jsonify(entry.to_dict()), 201
+
+
+@app.route('/api/journal/<int:entry_id>', methods=['DELETE'])
+@login_required
+def delete_journal(entry_id):
+    entry = JournalEntry.query.get_or_404(entry_id)
+    db.session.delete(entry)
+    db.session.commit()
+    return jsonify({'message': 'Deleted'})
+
+
+@app.route('/api/todos', methods=['GET'])
+@login_required
+def get_todos():
+    user = get_current_user()
+    todos = TodoItem.query.filter_by(user_id=user.id).order_by(TodoItem.done, TodoItem.created_at.desc()).all()
+    return jsonify([t.to_dict() for t in todos])
+
+
+@app.route('/api/todos', methods=['POST'])
+@login_required
+def add_todo():
+    user = get_current_user()
+    data = request.get_json()
+    if not data or not data.get('text'):
+        return jsonify({'error': 'text required'}), 400
+
+    from datetime import date as date_type
+    todo = TodoItem(
+        text=data['text'],
+        priority=data.get('priority', 'medium'),
+        due_date=date_type.fromisoformat(data['due_date']) if data.get('due_date') else None,
+        user_id=user.id
+    )
+    db.session.add(todo)
+    db.session.commit()
+    return jsonify(todo.to_dict()), 201
+
+
+@app.route('/api/todos/<int:todo_id>', methods=['PUT'])
+@login_required
+def update_todo(todo_id):
+    todo = TodoItem.query.get_or_404(todo_id)
+    data = request.get_json()
+    if 'done' in data:
+        todo.done = data['done']
+    if 'text' in data:
+        todo.text = data['text']
+    if 'priority' in data:
+        todo.priority = data['priority']
+    db.session.commit()
+    return jsonify(todo.to_dict())
+
+
+@app.route('/api/todos/<int:todo_id>', methods=['DELETE'])
+@login_required
+def delete_todo(todo_id):
+    todo = TodoItem.query.get_or_404(todo_id)
+    db.session.delete(todo)
+    db.session.commit()
+    return jsonify({'message': 'Deleted'})
 
 
 # ============ LECTURE NOTES ROUTES ============
