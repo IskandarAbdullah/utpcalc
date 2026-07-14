@@ -15,6 +15,17 @@ db.init_app(app)
 
 with app.app_context():
     db.create_all()
+    # Safe column migration for existing databases
+    import sqlalchemy
+    with db.engine.connect() as conn:
+        try:
+            conn.execute(sqlalchemy.text("SELECT summary FROM lecture_notes LIMIT 1"))
+        except Exception:
+            try:
+                conn.execute(sqlalchemy.text("ALTER TABLE lecture_notes ADD COLUMN summary TEXT"))
+                conn.commit()
+            except Exception:
+                pass
 
 
 # ============ AUTH HELPER ============
