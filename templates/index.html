@@ -121,25 +121,35 @@
     {% include 'nav.html' %}
     <div class="container">
         <!-- Tabs Navigation -->
-        <ul class="nav nav-tabs" id="mainTabs" role="tablist">
+        <ul class="nav nav-tabs" id="mainTabs" role="tablist" style="flex-wrap:nowrap;overflow-x:auto;">
             <li class="nav-item">
                 <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#marks-tab">
-                    <i class="fas fa-calculator me-1"></i> Marks
-                </button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#gpa-tab">
-                    <i class="fas fa-chart-bar me-1"></i> GPA
+                    <i class="fas fa-calculator me-1"></i>Marks
                 </button>
             </li>
             <li class="nav-item">
                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#todo-tab">
-                    <i class="fas fa-tasks me-1"></i> To-Do
+                    <i class="fas fa-tasks me-1"></i>To-Do
                 </button>
             </li>
             <li class="nav-item">
                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#ai-tab">
-                    <i class="fas fa-robot me-1"></i> AI
+                    <i class="fas fa-robot me-1"></i>AI
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#gpa-tab">
+                    <i class="fas fa-chart-bar me-1"></i>CGPA
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#timer-tab">
+                    <i class="fas fa-clock me-1"></i>Timer
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#flashcard-tab">
+                    <i class="fas fa-layer-group me-1"></i>Cards
                 </button>
             </li>
         </ul>
@@ -368,6 +378,64 @@
                     </div>
                 </div>
             </div>
+            <!-- TIMER TAB -->
+            <div class="tab-pane fade" id="timer-tab">
+                <div class="card p-4 text-center">
+                    <div id="timer-mode-label" style="font-size:0.9rem;color:#6b7280;font-weight:500;">🎯 Focus Time</div>
+                    <div id="timer-display" style="font-size:4.5rem;font-weight:800;color:#003366;letter-spacing:-3px;">25:00</div>
+                    <div class="mb-3" id="pomo-session-dots"></div>
+                    <div class="d-flex justify-content-center gap-3 mb-3">
+                        <button class="btn btn-success rounded-circle" style="width:50px;height:50px;" id="pomo-start" onclick="pomoStart()"><i class="fas fa-play"></i></button>
+                        <button class="btn btn-warning rounded-circle" style="width:50px;height:50px;display:none;" id="pomo-pause" onclick="pomoPause()"><i class="fas fa-pause"></i></button>
+                        <button class="btn btn-danger rounded-circle" style="width:50px;height:50px;" onclick="pomoReset()"><i class="fas fa-redo"></i></button>
+                    </div>
+                    <div class="row">
+                        <div class="col-4"><small class="text-muted">Focus</small><br><strong id="pomo-focus-min">0</strong> min</div>
+                        <div class="col-4"><small class="text-muted">Sessions</small><br><strong id="pomo-sessions">0</strong></div>
+                        <div class="col-4"><small class="text-muted">Break</small><br><strong id="pomo-break-min">0</strong> min</div>
+                    </div>
+                    <hr>
+                    <div class="row g-2">
+                        <div class="col"><label class="form-label small">Focus</label><input type="number" id="pomo-set-focus" class="form-control form-control-sm" value="25" min="1" max="60"></div>
+                        <div class="col"><label class="form-label small">Break</label><input type="number" id="pomo-set-break" class="form-control form-control-sm" value="5" min="1" max="30"></div>
+                        <div class="col"><label class="form-label small">Sets</label><input type="number" id="pomo-set-count" class="form-control form-control-sm" value="4" min="1" max="10"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FLASHCARD TAB -->
+            <div class="tab-pane fade" id="flashcard-tab">
+                <div class="card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0"><i class="fas fa-layer-group me-1"></i>AI Flashcards</h6>
+                        <select id="fc-course-main" class="form-select form-select-sm" style="width:auto;">
+                            <option value="">All courses</option>
+                        </select>
+                    </div>
+                    <div id="fc-main-empty" class="text-center py-3">
+                        <p class="text-muted small">Generate flashcards from your lecture notes</p>
+                        <button class="btn btn-gold btn-sm" onclick="genFlashcards()"><i class="fas fa-magic me-1"></i>Generate Flashcards</button>
+                    </div>
+                    <div id="fc-main-viewer" style="display:none;">
+                        <div style="perspective:1000px;height:220px;cursor:pointer;margin-bottom:12px;" onclick="fcFlip()">
+                            <div id="fc-main-card" style="width:100%;height:100%;position:relative;transition:transform 0.6s;transform-style:preserve-3d;">
+                                <div style="position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:16px;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;background:linear-gradient(135deg,#003366,#004080);color:white;font-size:1rem;" id="fc-main-front">Question</div>
+                                <div style="position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:16px;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;background:linear-gradient(135deg,#FFB81C,#ffc94d);color:#003366;font-weight:600;transform:rotateY(180deg);" id="fc-main-back">Answer</div>
+                            </div>
+                        </div>
+                        <div class="text-center mb-2"><small class="text-muted"><span id="fc-main-idx">1</span>/<span id="fc-main-total">0</span></small></div>
+                        <div class="d-flex justify-content-center gap-2">
+                            <button class="btn btn-sm btn-outline-secondary rounded-circle" style="width:40px;height:40px;" onclick="fcPrev()"><i class="fas fa-chevron-left"></i></button>
+                            <button class="btn btn-sm btn-outline-secondary rounded-circle" style="width:40px;height:40px;" onclick="fcNext()"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                        <div class="text-center mt-2"><small class="text-muted">Tap card to flip</small></div>
+                    </div>
+                    <hr>
+                    <button class="btn btn-gold btn-sm w-100" onclick="genFlashcards()"><i class="fas fa-magic me-1"></i>Generate New Cards</button>
+                    <div id="fc-main-status" class="mt-2" style="display:none;"></div>
+                </div>
+            </div>
+
         </div>
     </div>
     <!-- Add Course Modal -->
@@ -1349,6 +1417,70 @@
             loadMainTodos();
         }
 
+        // ============ POMODORO TIMER ============
+        let pomoInterval=null, pomoTime=25*60, pomoRunning=false, pomoBreak=false, pomoSessions=0, pomoTotalFocus=0;
+
+        function pomoUpdate(){
+            const m=Math.floor(pomoTime/60).toString().padStart(2,'0');
+            const s=(pomoTime%60).toString().padStart(2,'0');
+            document.getElementById('timer-display').textContent=`${m}:${s}`;
+            document.getElementById('timer-mode-label').textContent=pomoBreak?'☕ Break Time':'🎯 Focus Time';
+            document.getElementById('pomo-focus-min').textContent=pomoTotalFocus;
+            document.getElementById('pomo-sessions').textContent=pomoSessions;
+            const sets=parseInt(document.getElementById('pomo-set-count').value)||4;
+            let dots='';
+            for(let i=0;i<sets;i++) dots+=`<span style="display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 2px;background:${i<pomoSessions?'#FFB81C':'#e5e7eb'}"></span>`;
+            document.getElementById('pomo-session-dots').innerHTML=dots;
+        }
+
+        function pomoStart(){
+            if(pomoRunning)return;
+            pomoRunning=true;
+            document.getElementById('pomo-start').style.display='none';
+            document.getElementById('pomo-pause').style.display='inline-flex';
+            pomoInterval=setInterval(()=>{
+                pomoTime--;
+                if(!pomoBreak) pomoTotalFocus=(pomoSessions*(parseInt(document.getElementById('pomo-set-focus').value)||25))+Math.round(((parseInt(document.getElementById('pomo-set-focus').value)||25)*60-pomoTime)/60);
+                if(pomoTime<=0){
+                    clearInterval(pomoInterval);pomoRunning=false;
+                    if(!pomoBreak){pomoSessions++;pomoBreak=true;pomoTime=(parseInt(document.getElementById('pomo-set-break').value)||5)*60;alert('Focus done! Take a break 🎉');pomoStart();}
+                    else{pomoBreak=false;pomoTime=(parseInt(document.getElementById('pomo-set-focus').value)||25)*60;alert('Break over! 💪');document.getElementById('pomo-start').style.display='inline-flex';document.getElementById('pomo-pause').style.display='none';}
+                }
+                pomoUpdate();
+            },1000);
+        }
+        function pomoPause(){clearInterval(pomoInterval);pomoRunning=false;document.getElementById('pomo-start').style.display='inline-flex';document.getElementById('pomo-pause').style.display='none';}
+        function pomoReset(){clearInterval(pomoInterval);pomoRunning=false;pomoBreak=false;pomoTime=(parseInt(document.getElementById('pomo-set-focus').value)||25)*60;pomoSessions=0;pomoTotalFocus=0;document.getElementById('pomo-start').style.display='inline-flex';document.getElementById('pomo-pause').style.display='none';pomoUpdate();}
+        pomoUpdate();
+
+        // ============ FLASHCARDS ============
+        let fcCards=[],fcIdx=0;
+
+        function fcFlip(){const c=document.getElementById('fc-main-card');c.style.transform=c.style.transform==='rotateY(180deg)'?'':'rotateY(180deg)';}
+        function fcShow(){if(!fcCards.length)return;document.getElementById('fc-main-front').textContent=fcCards[fcIdx].question;document.getElementById('fc-main-back').textContent=fcCards[fcIdx].answer;document.getElementById('fc-main-idx').textContent=fcIdx+1;document.getElementById('fc-main-total').textContent=fcCards.length;document.getElementById('fc-main-card').style.transform='';}
+        function fcNext(){fcIdx=(fcIdx+1)%fcCards.length;fcShow();}
+        function fcPrev(){fcIdx=(fcIdx-1+fcCards.length)%fcCards.length;fcShow();}
+
+        async function genFlashcards(){
+            const course=document.getElementById('fc-course-main').value;
+            const st=document.getElementById('fc-main-status');
+            st.style.display='block';st.innerHTML='<small class="text-info"><i class="fas fa-spinner fa-spin me-1"></i>Generating...</small>';
+            try{
+                const r=await fetch('/api/study/flashcards',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({course_code:course,num_cards:10})});
+                const d=await r.json();
+                if(d.success&&d.flashcards.length){fcCards=d.flashcards;fcIdx=0;document.getElementById('fc-main-empty').style.display='none';document.getElementById('fc-main-viewer').style.display='block';fcShow();st.innerHTML=`<small class="text-success">${fcCards.length} cards ready!</small>`;}
+                else{st.innerHTML=`<small class="text-danger">${d.error||'Add notes first'}</small>`;}
+            }catch(e){st.innerHTML='<small class="text-danger">Error</small>';}
+        }
+
+        function populateFcCourse(){
+            if(!currentSemesterId)return;
+            fetch(`/api/semesters/${currentSemesterId}/courses`).then(r=>r.json()).then(courses=>{
+                const sel=document.getElementById('fc-course-main');
+                sel.innerHTML='<option value="">All courses</option>'+courses.map(c=>`<option value="${c.code}">${c.code}</option>`).join('');
+            });
+        }
+
         // ============ INIT ============
         async function doLogout() {
             await fetch('/api/auth/logout', {method: 'POST'});
@@ -1366,6 +1498,7 @@
         loadUser();
         loadSemesters();
         loadMainTodos();
+        populateFcCourse();
     </script>
     <script>
         if ('serviceWorker' in navigator) {
