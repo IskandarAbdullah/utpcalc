@@ -1321,30 +1321,25 @@ def get_notes():
 @login_required
 def add_note():
     user = get_current_user()
-    import base64
 
     course_code = request.form.get('course_code', '').strip()
     title = request.form.get('title', '').strip()
     week_number = request.form.get('week_number', type=int)
     content = ''
+    summary = ''
     filename = ''
-    file_data = None
-    file_type = None
 
     if not course_code or not title:
         return jsonify({'error': 'course_code and title required'}), 400
 
-    # Handle file upload (PDF or image)
+    # Handle file upload — scan PDF/image and extract text
     if 'file' in request.files and request.files['file'].filename:
         file = request.files['file']
         filename = file.filename
         raw_bytes = file.read()
 
-        # Save original file as base64
-        file_data = base64.b64encode(raw_bytes).decode('utf-8')
-
         if file.filename.lower().endswith('.pdf'):
-            file_type = 'application/pdf'
+            # Try text extraction first
             try:
                 from io import BytesIO
                 from PyPDF2 import PdfReader
@@ -1356,28 +1351,33 @@ def add_note():
                 content = ''
             # If PyPDF2 failed (scanned PDF), try AI vision
             if not content.strip():
-                result = ai_read_image(raw_bytes, f"Read all text from this PDF lecture note for {course_code}.")
+                result = ai_read_image(raw_bytes, f"Scan and read all text from this lecture note PDF for {course_code}. Return every word you can see.")
                 content = result.get('raw_text', '') or result.get('summary', '')
         elif file.content_type and file.content_type.startswith('image/'):
-            file_type = file.content_type
-            result = ai_read_image(raw_bytes, f"Read all text from this lecture note for {course_code}. Return all text content.")
+            # Scan image with AI vision
+            result = ai_read_image(raw_bytes, f"Scan and read all text from this lecture note image for {course_code}. Return every word you can see.")
             content = result.get('raw_text', '') or result.get('summary', '')
-        else:
-            file_type = 'application/octet-stream'
-            content = f'[File: {filename}]'
     elif request.form.get('content'):
         content = request.form.get('content')
 
     if not content or not content.strip():
-        # Still save the file even if we can't extract text
-        content = f'[Uploaded file: {filename} - text extraction failed]'
+        return jsonify({'error': 'Could not extract text from file. Try a clearer image/PDF.'}), 400
+
+    # Generate AI summary
+    try:
+        summary_messages = [
+            {'role': 'system', 'content': 'You are a study assistant. Summarize the following lecture notes in clear bullet points. Keep it concise (max 200 words). Focus on key concepts, definitions, and important points.'},
+            {'role': 'user', 'content': f"Summarize these lecture notes for {course_code} - {title}:\n\n{content[:3000]}"}
+        ]
+        summary = _chat(summary_messages)
+    except Exception:
+        summary = ''
 
     note = LectureNote(
         course_code=course_code,
         title=title,
         content=content,
-        file_data=file_data,
-        file_type=file_type,
+        summary=summary,
         filename=filename,
         week_number=week_number,
         user_id=user.id
@@ -1394,25 +1394,6 @@ def delete_note(note_id):
     db.session.delete(note)
     db.session.commit()
     return jsonify({'message': 'Note deleted'})
-
-
-@app.route('/api/notes/<int:note_id>/download', methods=['GET'])
-@login_required
-def download_note(note_id):
-    """Download the original file."""
-    import base64
-    from flask import Response
-
-    note = LectureNote.query.get_or_404(note_id)
-    if not note.file_data:
-        return jsonify({'error': 'No file stored for this note'}), 404
-
-    file_bytes = base64.b64decode(note.file_data)
-    return Response(
-        file_bytes,
-        mimetype=note.file_type or 'application/octet-stream',
-        headers={'Content-Disposition': f'inline; filename="{note.filename}"'}
-    )
 
 
 @app.route('/api/notes/generate-quiz', methods=['POST'])

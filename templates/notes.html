@@ -146,12 +146,10 @@
                             <span class="badge bg-primary ms-1" style="font-size:0.65rem;">${n.course_code}</span>
                             ${n.week_number ? `<span class="badge bg-secondary ms-1" style="font-size:0.65rem;">Week ${n.week_number}</span>` : ''}
                         </div>
-                        <div class="d-flex gap-1">
-                            ${n.has_file ? `<a href="/api/notes/${n.id}/download" target="_blank" class="btn btn-sm p-0 px-1 text-primary" title="View/Download"><i class="fas fa-download"></i></a>` : ''}
-                            <button class="btn btn-sm p-0 px-1 text-danger" onclick="deleteNote(${n.id})"><i class="fas fa-times"></i></button>
-                        </div>
+                        <button class="btn btn-sm p-0 px-1 text-danger" onclick="deleteNote(${n.id})"><i class="fas fa-times"></i></button>
                     </div>
-                    <div class="note-content mt-1">${n.content.substring(0, 200)}...</div>
+                    ${n.summary ? `<div class="mt-2 p-2" style="background:#f0fdf4;border-radius:8px;border-left:3px solid #22c55e;"><small class="text-success fw-bold"><i class="fas fa-magic me-1"></i>AI Summary:</small><div class="small mt-1">${n.summary.replace(/\n/g,'<br>')}</div></div>` : ''}
+                    <div class="note-content mt-1">${n.content.substring(0, 150)}...</div>
                     ${n.filename ? `<small class="text-muted"><i class="fas fa-file me-1"></i>${n.filename}</small>` : ''}
                 </div>
             `).join('');

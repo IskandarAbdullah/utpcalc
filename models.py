@@ -374,9 +374,8 @@ class LectureNote(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     course_code = db.Column(db.String(20), nullable=False)
     title = db.Column(db.String(200), nullable=False)
-    content = db.Column(db.Text, nullable=False)  # extracted text from PDF/image or typed
-    file_data = db.Column(db.Text, nullable=True)  # base64 encoded original file
-    file_type = db.Column(db.String(20), nullable=True)  # pdf, image/jpeg, etc.
+    content = db.Column(db.Text, nullable=False)  # full extracted text
+    summary = db.Column(db.Text, nullable=True)  # AI-generated summary
     filename = db.Column(db.String(200), nullable=True)
     week_number = db.Column(db.Integer, nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -388,9 +387,8 @@ class LectureNote(db.Model):
             'course_code': self.course_code,
             'title': self.title,
             'content': self.content,
+            'summary': self.summary,
             'filename': self.filename,
-            'file_type': self.file_type,
-            'has_file': bool(self.file_data),
             'week_number': self.week_number,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
