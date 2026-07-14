@@ -6,6 +6,7 @@ from models import db, User, Semester, Course, Assessment, CalendarEvent, Course
 from ai_service import get_ai_response, analyze_performance, predict_grade, get_study_tips, extract_pdf_text, parse_assessments_from_pdf, ai_edit_assessments, ai_parse_calendar_events, ai_parse_pdf_calendar, ai_read_image, _chat
 import re
 from course_catalog import UTP_PROGRAMS
+from prereq_data import PREREQUISITES, COURSE_NAMES
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -111,6 +112,13 @@ def notes_page():
     return render_template('notes.html')
 
 
+@app.route('/prereq')
+def prereq_page():
+    if 'user_id' not in session:
+        return redirect(url_for('login_page'))
+    return render_template('prereq.html')
+
+
 @app.route('/journey')
 def journey_page():
     if 'user_id' not in session:
@@ -211,6 +219,36 @@ def logout():
 def get_me():
     user = get_current_user()
     return jsonify(user.to_dict())
+
+
+# ============ PREREQUISITE ROUTES ============
+
+@app.route('/api/prerequisites', methods=['GET'])
+@login_required
+def get_prerequisites():
+    """Get prerequisite tree for user's programme."""
+    user = get_current_user()
+    program = UTP_PROGRAMS.get(user.program_id, {})
+    
+    # Get all courses in user's programme
+    program_courses = set()
+    for sem_courses in program.get('semesters', {}).values():
+        for c in sem_courses:
+            program_courses.add(c['code'])
+
+    # Filter prerequisites to only include courses in user's programme
+    nodes = []
+    edges = []
+    
+    for code in program_courses:
+        name = COURSE_NAMES.get(code, code)
+        nodes.append({'id': code, 'label': f"{code}\n{name}"})
+        if code in PREREQUISITES:
+            for prereq in PREREQUISITES[code]:
+                if prereq in program_courses:
+                    edges.append({'from': prereq, 'to': code})
+
+    return jsonify({'nodes': nodes, 'edges': edges, 'programme': program.get('name', '')})
 
 
 # ============ CATALOG ROUTES ============
