@@ -15,17 +15,24 @@ db.init_app(app)
 
 with app.app_context():
     db.create_all()
-    # Safe column migration for existing databases
+    # Safe column migration for existing PostgreSQL/SQLite databases
     import sqlalchemy
+    migrations = [
+        "ALTER TABLE lecture_notes ADD COLUMN IF NOT EXISTS summary TEXT",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS bio VARCHAR(200) DEFAULT ''",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_pic TEXT",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS dark_mode BOOLEAN DEFAULT false",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS target_cgpa FLOAT DEFAULT 3.5",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT false",
+        "ALTER TABLE timetable ADD COLUMN IF NOT EXISTS repeat_until VARCHAR(10)",
+    ]
     with db.engine.connect() as conn:
-        try:
-            conn.execute(sqlalchemy.text("SELECT summary FROM lecture_notes LIMIT 1"))
-        except Exception:
+        for sql in migrations:
             try:
-                conn.execute(sqlalchemy.text("ALTER TABLE lecture_notes ADD COLUMN summary TEXT"))
+                conn.execute(sqlalchemy.text(sql))
                 conn.commit()
             except Exception:
-                pass
+                conn.rollback()
 
 
 # ============ AUTH HELPER ============
