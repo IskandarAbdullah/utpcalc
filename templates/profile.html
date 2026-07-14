@@ -185,19 +185,17 @@
         }
 
         function toggleDarkMode(dark) {
-            document.body.style.background = dark ? '#1a1a2e' : '#f0f2f5';
-            document.body.style.color = dark ? '#e0e0e0' : '#1f2937';
-            document.querySelectorAll('.card').forEach(c => {
-                c.style.background = dark ? '#16213e' : 'white';
-                c.style.color = dark ? '#e0e0e0' : '#1f2937';
-            });
-            // Save preference
-            fetch('/api/profile', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({dark_mode: dark})});
+            if (dark) {
+                document.body.classList.add('dark-mode');
+            } else {
+                document.body.classList.remove('dark-mode');
+            }
             localStorage.setItem('darkMode', dark);
+            fetch('/api/profile', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({dark_mode: dark})});
         }
 
         // Apply saved dark mode
-        if (localStorage.getItem('darkMode') === 'true') toggleDarkMode(true);
+        if (localStorage.getItem('darkMode') === 'true') document.body.classList.add('dark-mode');
     </script>
 </body>
 </html>

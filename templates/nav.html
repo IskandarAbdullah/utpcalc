@@ -9,6 +9,36 @@
     --bottom-nav-height: 64px;
 }
 
+/* Dark mode */
+body.dark-mode {
+    background: #1a1a2e !important;
+    color: #e0e0e0 !important;
+}
+body.dark-mode .card {
+    background: #16213e !important;
+    color: #e0e0e0 !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2) !important;
+}
+body.dark-mode .card-header {
+    background: #0f1a2e !important;
+    color: #e0e0e0 !important;
+}
+body.dark-mode .form-control, body.dark-mode .form-select {
+    background: #1e293b !important;
+    color: #e0e0e0 !important;
+    border-color: #374151 !important;
+}
+body.dark-mode .table { color: #e0e0e0 !important; }
+body.dark-mode .table th { background: #1e293b !important; color: #e0e0e0 !important; }
+body.dark-mode .table td { border-color: #374151 !important; }
+body.dark-mode .nav-tabs { background: #16213e !important; }
+body.dark-mode .nav-tabs .nav-link { color: #9ca3af !important; }
+body.dark-mode .nav-tabs .nav-link.active { background: var(--utp-blue) !important; color: white !important; }
+body.dark-mode .modal-content { background: #16213e !important; color: #e0e0e0 !important; }
+body.dark-mode .text-muted { color: #9ca3af !important; }
+body.dark-mode .badge.bg-info { background: #1e40af !important; }
+body.dark-mode a { color: var(--utp-gold); }
+
 /* ===== Desktop Top Navbar ===== */
 .desktop-nav {
     display: flex;
@@ -199,3 +229,10 @@
         </a>
     </div>
 </nav>
+
+<!-- Global Dark Mode Script -->
+<script>
+if (localStorage.getItem('darkMode') === 'true') {
+    document.body.classList.add('dark-mode');
+}
+</script>
