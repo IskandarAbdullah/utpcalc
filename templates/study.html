@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UTP Marks - Study Tools</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root{--utp-blue:#003366;--utp-gold:#FFB81C;--bg:#f0f2f5}
+        body{background:var(--bg);font-family:'Inter',sans-serif;padding-bottom:80px}
+        .navbar{background:linear-gradient(135deg,var(--utp-blue),#004080);padding:12px 0;box-shadow:0 4px 20px rgba(0,51,102,0.2)}
+        .navbar-brand{color:var(--utp-gold)!important;font-weight:700}
+        .nav-link{color:rgba(255,255,255,0.7)!important;font-size:0.85rem}.nav-link:hover,.nav-link.active{color:var(--utp-gold)!important}
+        .card{border:none;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.06)}
+        .form-control,.form-select{border-radius:10px;border:2px solid #e5e7eb;font-size:0.85rem}
+        .btn-utp{background:linear-gradient(135deg,var(--utp-blue),#004080);color:white;border:none;border-radius:10px;font-weight:600}
+        .btn-utp:hover{color:white}
+        .btn-gold{background:linear-gradient(135deg,var(--utp-gold),#ffc94d);color:var(--utp-blue);border:none;border-radius:10px;font-weight:600}
+
+        /* Pomodoro */
+        .timer-display{font-size:5rem;font-weight:800;color:var(--utp-blue);letter-spacing:-3px;text-align:center}
+        .timer-label{text-align:center;font-size:0.9rem;color:#6b7280;font-weight:500}
+        .timer-btn{width:60px;height:60px;border-radius:50%;border:none;font-size:1.2rem;cursor:pointer;transition:all 0.2s}
+        .timer-btn:hover{transform:scale(1.1)}
+        .btn-start{background:linear-gradient(135deg,#22c55e,#16a34a);color:white}
+        .btn-pause{background:linear-gradient(135deg,#f59e0b,#d97706);color:white}
+        .btn-reset{background:linear-gradient(135deg,#ef4444,#dc2626);color:white}
+        .session-badge{display:inline-block;width:12px;height:12px;border-radius:50%;margin:0 3px}
+        .session-done{background:var(--utp-gold)}.session-pending{background:#e5e7eb}
+
+        /* Flashcards */
+        .flashcard-container{perspective:1000px;height:250px;cursor:pointer;margin-bottom:16px}
+        .flashcard{width:100%;height:100%;position:relative;transition:transform 0.6s;transform-style:preserve-3d}
+        .flashcard.flipped{transform:rotateY(180deg)}
+        .flashcard-face{position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:16px;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center}
+        .flashcard-front{background:linear-gradient(135deg,var(--utp-blue),#004080);color:white;font-size:1.1rem;font-weight:500}
+        .flashcard-back{background:linear-gradient(135deg,var(--utp-gold),#ffc94d);color:var(--utp-blue);transform:rotateY(180deg);font-size:1rem;font-weight:600}
+        .flashcard-nav{display:flex;justify-content:center;gap:12px}
+        .flashcard-nav button{border:none;border-radius:50%;width:44px;height:44px;cursor:pointer;font-size:1rem;transition:all 0.2s}
+        .flashcard-nav button:hover{transform:scale(1.1)}
+
+        .tab-btn{border:none;background:none;padding:10px 20px;font-weight:600;color:#6b7280;cursor:pointer;border-bottom:3px solid transparent;transition:all 0.2s;font-family:'Inter',sans-serif}
+        .tab-btn.active{color:var(--utp-blue);border-bottom-color:var(--utp-gold)}
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark mb-3">
+        <div class="container"><a class="navbar-brand" href="/"><i class="fas fa-graduation-cap me-1"></i>UTP Marks</a>
+            <div class="d-flex gap-3"><a class="nav-link" href="/">Marks</a><a class="nav-link" href="/notes">Notes</a><a class="nav-link active" href="/study">Study</a><a class="nav-link" href="/profile">Profile</a></div>
+        </div>
+    </nav>
+
+    <div class="container" style="max-width:700px;">
+        <!-- Tabs -->
+        <div class="text-center mb-3">
+            <button class="tab-btn active" onclick="showTab('pomodoro')"><i class="fas fa-clock me-1"></i>Pomodoro</button>
+            <button class="tab-btn" onclick="showTab('flashcards')"><i class="fas fa-layer-group me-1"></i>Flashcards</button>
+        </div>
+
+        <!-- POMODORO -->
+        <div id="pomodoro-section">
+            <div class="card p-4 text-center">
+                <div class="timer-label" id="timer-mode">Focus Time</div>
+                <div class="timer-display" id="timer-display">25:00</div>
+                <div class="mb-3" id="session-dots"></div>
+                <div class="d-flex justify-content-center gap-3">
+                    <button class="timer-btn btn-start" id="start-btn" onclick="startTimer()"><i class="fas fa-play"></i></button>
+                    <button class="timer-btn btn-pause" onclick="pauseTimer()" style="display:none;" id="pause-btn"><i class="fas fa-pause"></i></button>
+                    <button class="timer-btn btn-reset" onclick="resetTimer()"><i class="fas fa-redo"></i></button>
+                </div>
+                <div class="row mt-4">
+                    <div class="col-4 text-center"><small class="text-muted d-block">Focus</small><strong id="stat-focus">0</strong><small> min</small></div>
+                    <div class="col-4 text-center"><small class="text-muted d-block">Sessions</small><strong id="stat-sessions">0</strong></div>
+                    <div class="col-4 text-center"><small class="text-muted d-block">Break</small><strong id="stat-break">0</strong><small> min</small></div>
+                </div>
+            </div>
+            <div class="card p-3 mt-3">
+                <h6 class="small"><i class="fas fa-cog me-1"></i>Settings</h6>
+                <div class="row g-2">
+                    <div class="col"><label class="form-label small">Focus (min)</label><input type="number" id="set-focus" class="form-control form-control-sm" value="25" min="1" max="60"></div>
+                    <div class="col"><label class="form-label small">Break (min)</label><input type="number" id="set-break" class="form-control form-control-sm" value="5" min="1" max="30"></div>
+                    <div class="col"><label class="form-label small">Sessions</label><input type="number" id="set-sessions" class="form-control form-control-sm" value="4" min="1" max="10"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FLASHCARDS -->
+        <div id="flashcards-section" style="display:none;">
+            <div class="card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0"><i class="fas fa-layer-group me-1"></i>Flashcards</h6>
+                    <select id="fc-course" class="form-select form-select-sm" style="width:auto;" onchange="loadFlashcards()">
+                        <option value="">All courses</option>
+                    </select>
+                </div>
+
+                <div id="fc-empty" class="text-center py-4">
+                    <p class="text-muted">No flashcards yet. Generate from your notes!</p>
+                    <button class="btn btn-gold btn-sm" onclick="generateFlashcards()"><i class="fas fa-magic me-1"></i>Generate Flashcards from Notes</button>
+                </div>
+
+                <div id="fc-viewer" style="display:none;">
+                    <div class="flashcard-container" onclick="flipCard()">
+                        <div class="flashcard" id="flashcard">
+                            <div class="flashcard-face flashcard-front" id="fc-front">Question</div>
+                            <div class="flashcard-face flashcard-back" id="fc-back">Answer</div>
+                        </div>
+                    </div>
+                    <div class="text-center mb-2"><small class="text-muted"><span id="fc-index">1</span> / <span id="fc-total">0</span></small></div>
+                    <div class="flashcard-nav">
+                        <button style="background:#ef4444;color:white" onclick="nextCard('hard')" title="Hard"><i class="fas fa-times"></i></button>
+                        <button style="background:#f59e0b;color:white" onclick="prevCard()" title="Previous"><i class="fas fa-chevron-left"></i></button>
+                        <button style="background:#3b82f6;color:white" onclick="nextCard('ok')" title="Next"><i class="fas fa-chevron-right"></i></button>
+                        <button style="background:#22c55e;color:white" onclick="nextCard('easy')" title="Easy"><i class="fas fa-check"></i></button>
+                    </div>
+                    <div class="text-center mt-2"><small class="text-muted">Tap card to flip · Red=Hard, Green=Easy</small></div>
+                </div>
+
+                <hr>
+                <button class="btn btn-gold btn-sm w-100" onclick="generateFlashcards()">
+                    <i class="fas fa-magic me-1"></i>Generate New Flashcards from Notes
+                </button>
+                <div id="fc-status" class="mt-2" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // ===== TAB SWITCHING =====
+        function showTab(tab) {
+            document.getElementById('pomodoro-section').style.display = tab === 'pomodoro' ? 'block' : 'none';
+            document.getElementById('flashcards-section').style.display = tab === 'flashcards' ? 'block' : 'none';
+            document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (tab==='pomodoro'&&i===0)||(tab==='flashcards'&&i===1)));
+        }
+
+        // ===== POMODORO TIMER =====
+        let timerInterval = null;
+        let timeLeft = 25 * 60;
+        let isRunning = false;
+        let isBreak = false;
+        let sessionsCompleted = 0;
+        let totalFocus = 0;
+        let totalBreak = 0;
+
+        function getSettings() {
+            return {
+                focus: parseInt(document.getElementById('set-focus').value) || 25,
+                breakTime: parseInt(document.getElementById('set-break').value) || 5,
+                sessions: parseInt(document.getElementById('set-sessions').value) || 4
+            };
+        }
+
+        function updateDisplay() {
+            const min = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+            const sec = (timeLeft % 60).toString().padStart(2, '0');
+            document.getElementById('timer-display').textContent = `${min}:${sec}`;
+            document.getElementById('timer-mode').textContent = isBreak ? '☕ Break Time' : '🎯 Focus Time';
+            document.getElementById('stat-focus').textContent = totalFocus;
+            document.getElementById('stat-sessions').textContent = sessionsCompleted;
+            document.getElementById('stat-break').textContent = totalBreak;
+
+            const s = getSettings();
+            let dots = '';
+            for (let i = 0; i < s.sessions; i++) {
+                dots += `<span class="session-badge ${i < sessionsCompleted ? 'session-done' : 'session-pending'}"></span>`;
+            }
+            document.getElementById('session-dots').innerHTML = dots;
+        }
+
+        function startTimer() {
+            if (isRunning) return;
+            isRunning = true;
+            document.getElementById('start-btn').style.display = 'none';
+            document.getElementById('pause-btn').style.display = 'inline-flex';
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                if (isBreak) totalBreak = Math.round((getSettings().breakTime * 60 - timeLeft) / 60);
+                else totalFocus = (sessionsCompleted * getSettings().focus) + Math.round((getSettings().focus * 60 - timeLeft) / 60);
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    isRunning = false;
+                    if (!isBreak) {
+                        sessionsCompleted++;
+                        // Start break
+                        isBreak = true;
+                        timeLeft = getSettings().breakTime * 60;
+                        new Audio('data:audio/wav;base64,UklGRl9vT19teleElFRkU=').play().catch(()=>{});
+                        alert('Focus session done! Take a break 🎉');
+                        startTimer();
+                    } else {
+                        // Break done, start focus
+                        isBreak = false;
+                        timeLeft = getSettings().focus * 60;
+                        alert('Break over! Back to focus 💪');
+                        document.getElementById('start-btn').style.display = 'inline-flex';
+                        document.getElementById('pause-btn').style.display = 'none';
+                    }
+                }
+                updateDisplay();
+            }, 1000);
+        }
+
+        function pauseTimer() {
+            clearInterval(timerInterval);
+            isRunning = false;
+            document.getElementById('start-btn').style.display = 'inline-flex';
+            document.getElementById('pause-btn').style.display = 'none';
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval);
+            isRunning = false;
+            isBreak = false;
+            timeLeft = getSettings().focus * 60;
+            sessionsCompleted = 0;
+            totalFocus = 0;
+            totalBreak = 0;
+            document.getElementById('start-btn').style.display = 'inline-flex';
+            document.getElementById('pause-btn').style.display = 'none';
+            updateDisplay();
+        }
+
+        updateDisplay();
+
+        // ===== FLASHCARDS =====
+        let flashcards = [];
+        let currentCard = 0;
+
+        async function loadCourses() {
+            const r = await fetch('/api/semesters');
+            const sems = await r.json();
+            const sel = document.getElementById('fc-course');
+            sems.forEach(s => s.courses.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.code;
+                opt.textContent = `${c.code}`;
+                sel.appendChild(opt);
+            }));
+        }
+
+        function flipCard() {
+            document.getElementById('flashcard').classList.toggle('flipped');
+        }
+
+        function showCard() {
+            if (!flashcards.length) return;
+            const card = flashcards[currentCard];
+            document.getElementById('fc-front').textContent = card.question;
+            document.getElementById('fc-back').textContent = card.answer;
+            document.getElementById('fc-index').textContent = currentCard + 1;
+            document.getElementById('fc-total').textContent = flashcards.length;
+            document.getElementById('flashcard').classList.remove('flipped');
+        }
+
+        function nextCard(difficulty) {
+            currentCard = (currentCard + 1) % flashcards.length;
+            showCard();
+        }
+
+        function prevCard() {
+            currentCard = (currentCard - 1 + flashcards.length) % flashcards.length;
+            showCard();
+        }
+
+        async function generateFlashcards() {
+            const course = document.getElementById('fc-course').value;
+            const statusDiv = document.getElementById('fc-status');
+            statusDiv.style.display = 'block';
+            statusDiv.innerHTML = '<small class="text-info"><i class="fas fa-spinner fa-spin me-1"></i>AI is creating flashcards from your notes...</small>';
+
+            try {
+                const res = await fetch('/api/study/flashcards', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({course_code: course, num_cards: 10})
+                });
+                const data = await res.json();
+                if (data.success && data.flashcards.length > 0) {
+                    flashcards = data.flashcards;
+                    currentCard = 0;
+                    document.getElementById('fc-empty').style.display = 'none';
+                    document.getElementById('fc-viewer').style.display = 'block';
+                    showCard();
+                    statusDiv.innerHTML = `<small class="text-success"><i class="fas fa-check me-1"></i>${flashcards.length} flashcards generated!</small>`;
+                } else {
+                    statusDiv.innerHTML = `<small class="text-danger">${data.error || 'Add notes first, then generate flashcards.'}</small>`;
+                }
+            } catch(e) {
+                statusDiv.innerHTML = '<small class="text-danger">Error generating flashcards.</small>';
+            }
+        }
+
+        function loadFlashcards() { flashcards = []; document.getElementById('fc-viewer').style.display = 'none'; document.getElementById('fc-empty').style.display = 'block'; }
+        loadCourses();
+    </script>
+</body>
+</html>

@@ -118,6 +118,13 @@ def journey_page():
     return render_template('journey.html')
 
 
+@app.route('/study')
+def study_page():
+    if 'user_id' not in session:
+        return redirect(url_for('login_page'))
+    return render_template('study.html')
+
+
 # ============ AUTH ROUTES ============
 
 @app.route('/api/auth/register', methods=['POST'])
@@ -1155,6 +1162,53 @@ def get_leaderboard():
     for i, e in enumerate(entries):
         e['rank'] = i + 1
     return jsonify(entries)
+
+
+# ============ STUDY TOOLS ROUTES ============
+
+@app.route('/api/study/flashcards', methods=['POST'])
+@login_required
+def generate_flashcards():
+    """Generate flashcards from lecture notes using AI."""
+    user = get_current_user()
+    data = request.get_json() or {}
+    course_code = data.get('course_code', '')
+    num_cards = int(data.get('num_cards', 10))
+
+    # Get notes
+    query = LectureNote.query.filter_by(user_id=user.id)
+    if course_code:
+        query = query.filter_by(course_code=course_code)
+    notes = query.all()
+
+    if not notes:
+        return jsonify({'success': False, 'error': 'No notes found. Upload lecture notes first.'})
+
+    notes_text = "\n\n".join([f"--- {n.title} ---\n{n.content[:1500]}" for n in notes[:5]])
+
+    messages = [
+        {'role': 'system', 'content': f"""Generate exactly {num_cards} flashcards for studying. 
+Respond with ONLY a valid JSON object:
+{{"flashcards": [{{"question": "...", "answer": "..."}}]}}
+
+Rules:
+- Questions should test understanding, not just definitions
+- Answers should be concise (1-3 sentences)
+- Cover different topics from the notes
+- Mix difficulty levels"""},
+        {'role': 'user', 'content': f"Generate {num_cards} flashcards from these lecture notes:\n\n{notes_text[:4000]}"}
+    ]
+
+    try:
+        import json as json_mod
+        content = _chat(messages)
+        json_match = re.search(r'\{.*\}', content, re.DOTALL)
+        if json_match:
+            result = json_mod.loads(json_match.group(0))
+            return jsonify({'success': True, 'flashcards': result.get('flashcards', [])})
+        return jsonify({'success': False, 'error': 'AI did not return valid format'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 
 # ============ JOURNEY & TODO ROUTES ============
