@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, render_template, session, redirect, u
 from flask_cors import CORS
 from functools import wraps
 from config import Config
-from models import db, User, Semester, Course, Assessment, CalendarEvent, CourseOutline, Post, PostLike, PostComment, Attendance, CourseReview, Timetable, LectureNote, JournalEntry, TodoItem, ChatMessage
+from models import db, User, Semester, Course, Assessment, CalendarEvent, CourseOutline, Post, PostLike, PostComment, Attendance, CourseReview, Timetable, LectureNote, JournalEntry, TodoItem, ChatMessage, Follow
 from ai_service import get_ai_response, analyze_performance, predict_grade, get_study_tips, extract_pdf_text, parse_assessments_from_pdf, ai_edit_assessments, ai_parse_calendar_events, ai_parse_pdf_calendar, ai_read_image, _chat
 import re
 from course_catalog import UTP_PROGRAMS
@@ -226,6 +226,70 @@ def logout():
 def get_me():
     user = get_current_user()
     return jsonify(user.to_dict())
+
+
+# ============ FOLLOW ROUTES ============
+
+@app.route('/api/users', methods=['GET'])
+@login_required
+def get_all_users():
+    """Get all users for discovery."""
+    user = get_current_user()
+    users = User.query.filter(User.id != user.id).all()
+    my_following = [f.following_id for f in Follow.query.filter_by(follower_id=user.id).all()]
+    result = []
+    for u in users:
+        followers_count = Follow.query.filter_by(following_id=u.id).count()
+        result.append({
+            'id': u.id,
+            'username': u.username,
+            'full_name': u.full_name,
+            'program_id': u.program_id,
+            'current_semester': u.current_semester,
+            'profile_pic': u.profile_pic,
+            'bio': u.bio or '',
+            'followers_count': followers_count,
+            'is_following': u.id in my_following
+        })
+    return jsonify(result)
+
+
+@app.route('/api/follow/<int:user_id>', methods=['POST'])
+@login_required
+def toggle_follow(user_id):
+    """Follow or unfollow a user."""
+    user = get_current_user()
+    if user_id == user.id:
+        return jsonify({'error': 'Cannot follow yourself'}), 400
+
+    existing = Follow.query.filter_by(follower_id=user.id, following_id=user_id).first()
+    if existing:
+        db.session.delete(existing)
+        db.session.commit()
+        return jsonify({'following': False})
+    else:
+        follow = Follow(follower_id=user.id, following_id=user_id)
+        db.session.add(follow)
+        db.session.commit()
+        return jsonify({'following': True})
+
+
+@app.route('/api/followers', methods=['GET'])
+@login_required
+def get_my_followers():
+    user = get_current_user()
+    followers = Follow.query.filter_by(following_id=user.id).all()
+    users = [User.query.get(f.follower_id).to_dict() for f in followers if User.query.get(f.follower_id)]
+    return jsonify(users)
+
+
+@app.route('/api/following', methods=['GET'])
+@login_required
+def get_my_following():
+    user = get_current_user()
+    following = Follow.query.filter_by(follower_id=user.id).all()
+    users = [User.query.get(f.following_id).to_dict() for f in following if User.query.get(f.following_id)]
+    return jsonify(users)
 
 
 # ============ CHAT ROUTES ============

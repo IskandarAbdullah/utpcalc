@@ -97,6 +97,16 @@
     </div>
 
     <div class="container" style="max-width: 600px;">
+        <!-- People Discovery -->
+        <div class="create-post mb-3" style="padding:14px;">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0 small"><i class="fas fa-user-plus me-1"></i>People</h6>
+                <button class="btn btn-sm" style="font-size:0.7rem;color:var(--utp-blue);" onclick="togglePeople()">See all</button>
+            </div>
+            <div id="people-row" style="display:flex;gap:10px;overflow-x:auto;padding:4px 0;"></div>
+            <div id="people-full" style="display:none;"></div>
+        </div>
+
         <!-- Create Post -->
         <div class="create-post">
             <textarea id="post-caption" rows="2" placeholder="Share your achievement, certificate, or event..."></textarea>
@@ -236,7 +246,45 @@
             return Math.floor(diff/86400) + 'd ago';
         }
 
+        // ===== PEOPLE / FOLLOW =====
+        let peopleExpanded = false;
+
+        async function loadPeople() {
+            const r = await fetch('/api/users');
+            const users = await r.json();
+            
+            document.getElementById('people-row').innerHTML = users.slice(0, 8).map(u => `
+                <div style="text-align:center;min-width:70px;flex-shrink:0;">
+                    <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#003366,#004080);color:white;display:flex;align-items:center;justify-content:center;margin:0 auto 4px;font-weight:700;font-size:0.8rem;">${u.full_name.charAt(0)}</div>
+                    <div style="font-size:0.6rem;font-weight:500;">${u.full_name.split(' ')[0]}</div>
+                    <button class="btn btn-sm px-2 py-0 mt-1" style="font-size:0.6rem;border-radius:20px;${u.is_following?'background:#e5e7eb;color:#374151;':'background:#003366;color:white;'}" onclick="toggleFollow(${u.id})">${u.is_following?'Following':'Follow'}</button>
+                </div>
+            `).join('') || '<small class="text-muted">No other users yet</small>';
+
+            document.getElementById('people-full').innerHTML = users.map(u => `
+                <div class="d-flex align-items-center justify-content-between py-2" style="border-bottom:1px solid #f0f0f0;">
+                    <div class="d-flex align-items-center gap-2">
+                        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#003366,#004080);color:white;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:0.75rem;">${u.full_name.charAt(0)}</div>
+                        <div><div style="font-size:0.82rem;font-weight:600;">${u.full_name}</div><small class="text-muted">${u.program_id.toUpperCase()} · Sem ${u.current_semester} · ${u.followers_count} followers</small></div>
+                    </div>
+                    <button class="btn btn-sm px-3" style="font-size:0.75rem;border-radius:20px;${u.is_following?'background:#e5e7eb;color:#374151;':'background:#003366;color:white;'}" onclick="toggleFollow(${u.id})">${u.is_following?'Unfollow':'Follow'}</button>
+                </div>
+            `).join('');
+        }
+
+        function togglePeople() {
+            peopleExpanded = !peopleExpanded;
+            document.getElementById('people-row').style.display = peopleExpanded ? 'none' : 'flex';
+            document.getElementById('people-full').style.display = peopleExpanded ? 'block' : 'none';
+        }
+
+        async function toggleFollow(userId) {
+            await fetch(`/api/follow/${userId}`, {method: 'POST'});
+            loadPeople();
+        }
+
         loadFeed();
+        loadPeople();
     </script>
 </body>
 </html>
